@@ -194,3 +194,10 @@ h2 { font-size: 20px; margin: 4px 0 12px; }
   padding: 10px 6px; border-radius: 9px; cursor: pointer;
 }
 .seg-btn.on { background: var(--accent); color: var(--accent-text); font-weight: 600; }
+
+/* ── Приветствие и иконка на экране ── */
+.welcome { text-align: center; padding: 12px 0 8px; }
+.welcome .big { font-size: 48px; }
+.welcome h1 { margin: 6px 0; }
+.home-card { cursor: default; align-items: flex-start; }
+.btn.small { padding: 9px 12px; font-size: 14px; margin-top: 10px; }

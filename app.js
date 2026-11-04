@@ -13,6 +13,31 @@
   function haptic(kind) {
     try { if (inTg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(kind); } catch (e) {}
   }
+  /* ───────────── Иконка на главном экране ─────────────
+     Telegram (версия 8.0+) умеет сам добавить ярлык приложения на экран телефона. */
+  var homeStatus = 'unsupported';   // unsupported | unknown | added | missed
+  function homeSupported() {
+    return inTg && tg.isVersionAtLeast && tg.isVersionAtLeast('8.0') && typeof tg.addToHomeScreen === 'function';
+  }
+  function checkHome(cb) {
+    if (!homeSupported()) { homeStatus = 'unsupported'; if (cb) cb(); return; }
+    try {
+      tg.checkHomeScreenStatus(function (st) { homeStatus = st || 'unknown'; if (cb) cb(); });
+    } catch (e) { homeStatus = 'unknown'; if (cb) cb(); }
+  }
+  function addHome() {
+    try { tg.addToHomeScreen(); } catch (e) {}
+  }
+  if (inTg) {
+    try {
+      tg.onEvent('homeScreenAdded', function () {
+        homeStatus = 'added';
+        localSet('home_added', '1');
+        if (!session) renderHome();
+      });
+    } catch (e) {}
+  }
+
   function tap() {
     try { if (inTg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch (e) {}
   }
@@ -341,11 +366,22 @@
 
   /* ───────────── Экраны ───────────── */
   function renderHome() {
+    if (!localGet('welcomed')) return renderWelcome();
     screen(null);
     var name = inTg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name;
     append(app, h('h1', {}, name ? 'Hi, ' + name + '! 👋' : 'English Practice 👋'));
     append(app, h('p', { class: 'sub' }, 'Выберите, чем заняться сейчас'));
     var list = h('div', { class: 'list' });
+    if (homeSupported() && homeStatus !== 'added' && homeStatus !== 'unsupported' && !localGet('home_hide') && !localGet('home_added')) {
+      append(list, h('div', { class: 'card home-card' },
+        h('div', { class: 'icon' }, '📱'),
+        h('div', { class: 'body' },
+          h('div', { class: 'title' }, 'Иконка на экране телефона'),
+          h('div', { class: 'meta' }, 'Открывайте приложение сразу, без Telegram-чатов'),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn small', onclick: addHome }, 'Добавить'),
+            h('button', { class: 'btn small secondary', onclick: function () { localSet('home_hide', '1'); renderHome(); } }, 'Скрыть')))));
+    }
     if (mistakes.length) {
       append(list, h('button', { class: 'card highlight', onclick: startMistakes },
         h('div', { class: 'icon' }, '🩹'),
@@ -369,6 +405,30 @@
           h('div', { class: 'meta' }, chosenVoice === 'neural' ? 'Живой голос' : (currentVoice() ? currentVoice().name : 'Выбрать голос')))));
     }
     append(app, list);
+  }
+
+  // Первый запуск: короткое приветствие и предложение добавить иконку
+  function renderWelcome() {
+    screen(null);
+    append(app, h('div', { class: 'welcome' },
+      h('div', { class: 'big' }, '👋'),
+      h('h1', {}, 'Привет! Это English Practice'),
+      h('p', { class: 'sub' }, 'Тренируйте времена, слова и разговорные фразы по 5 минут в день.')));
+    append(app, h('div', { class: 'theory', html:
+      '<p>⏳ <b>Времена</b> — отметьте одно или несколько и тренируйтесь вперемешку</p>' +
+      '<p>🗣 <b>Фразы</b> — говорите вслух и слушайте живой голос</p>' +
+      '<p>📚 <b>Слова</b> — нажмите на любое слово в предложении, чтобы увидеть перевод</p>' +
+      '<p>🩹 <b>Ошибки</b> сохраняются — их можно повторить отдельно</p>' }));
+    function done() { localSet('welcomed', '1'); renderHome(); }
+    if (homeSupported() && homeStatus !== 'added' && homeStatus !== 'unsupported') {
+      append(app, h('div', { class: 'theory' },
+        h('p', {}, h('b', {}, '📱 Добавьте иконку на экран телефона')),
+        h('p', {}, 'Приложение будет открываться сразу, как обычное — без поиска бота в Telegram.')));
+      append(app, h('button', { class: 'btn', onclick: function () { addHome(); done(); } }, 'Добавить иконку'));
+      append(app, h('button', { class: 'btn secondary', onclick: done }, 'Позже'));
+    } else {
+      append(app, h('button', { class: 'btn', onclick: done }, 'Начать'));
+    }
   }
 
   function renderSection(sec) {
@@ -875,6 +935,6 @@
     try { progress = JSON.parse(vals[0]) || {}; } catch (e) { progress = {}; }
     try { mistakes = JSON.parse(vals[1]) || []; } catch (e) { mistakes = []; }
     try { selected = JSON.parse(vals[2]) || {}; } catch (e) { selected = {}; }
-    renderHome();
+    checkHome(renderHome);
   });
 })();
