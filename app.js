@@ -182,7 +182,7 @@
      (нейросетевые голоса Google / Apple / Microsoft), или тот, что выбрал пользователь. */
   var speechOk = 'speechSynthesis' in window;
   var voices = [];
-  var chosenVoice = localGet('voice') || 'neural';
+  var chosenVoice = 'neural';   // всегда живой голос; голос устройства — только если записи нет
 
   // Заранее записанные нейросетевым голосом фразы (папка audio/, создаёт GitHub)
   var audioSet = {};
@@ -254,49 +254,7 @@
     return canSpeak() ? h('button', { class: 'speak', onclick: function () { speak(text); } }, '🔊 Послушать') : null;
   }
 
-  function renderVoices() {
-    screen(renderHome);
-    loadVoices();
-    append(app, h('h2', {}, '🔊 Голос для озвучки'));
-    append(app, h('p', { class: 'sub' }, 'Нажмите на голос, чтобы послушать и выбрать.'));
-    var list = h('div', { class: 'list' });
-    var neuralOn = chosenVoice === 'neural';
-    append(list, h('button', { class: 'card' + (neuralOn ? ' highlight' : ''), onclick: function () {
-      chosenVoice = 'neural';
-      localSet('voice', 'neural');
-      speak("Hi! I'm going to help you practise your English.");
-      renderVoices();
-    } },
-      h('div', { class: 'icon' }, '🎙'),
-      h('div', { class: 'body' },
-        h('div', { class: 'title' }, 'Живой голос (рекомендуется)'),
-        h('div', { class: 'meta' }, audioCount
-          ? 'Нейросетевая запись · озвучено фраз: ' + audioCount
-          : 'Записи ещё готовятся — пока будет голос устройства'))));
-    if (!speechOk || !voices.length) {
-      append(app, list);
-      return;
-    }
-    append(list, h('div', { class: 'list-label' }, 'Голоса вашего устройства'));
-    var cur = neuralOn ? null : currentVoice();
-    voices.forEach(function (v, i) {
-      append(list, h('button', { class: 'card' + (cur && v.name === cur.name ? ' highlight' : ''), onclick: function () {
-        chosenVoice = v.name;
-        localSet('voice', v.name);
-        speak("Hi! I'm going to help you practise your English.");
-        renderVoices();
-      } },
-        h('div', { class: 'body' },
-          h('div', { class: 'title' }, v.name),
-          h('div', { class: 'meta' }, v.lang + (v.localService ? '' : ' · онлайн')))));
-    });
-    append(app, list);
-    append(app, h('div', { class: 'theory', style: 'margin-top:16px', html:
-      '<p><b>Как получить голос получше</b></p>' +
-      '<p>📱 iPhone: Настройки → Универсальный доступ → Устный контент → Голоса → Английский → скачайте голос с пометкой «Улучшенный» или «Премиум» (например, Ava или Zoe).</p>' +
-      '<p>🤖 Android: Настройки → Специальные возможности → Синтез речи → Google → Установить голосовые данные → English.</p>' +
-      '<p>После этого вернитесь сюда — новый голос появится в списке.</p>' }));
-  }
+
 
   /* ───────────── Поиск тем ───────────── */
   function sectionOfTopicId(id) {
@@ -454,13 +412,6 @@
           h('div', { class: 'meta' }, sec.desc + ' · тем: ' + sec.topics.length),
           bar(sectionPercent(sec)))));
     });
-    {
-      append(list, h('button', { class: 'card', onclick: renderVoices },
-        h('div', { class: 'icon' }, '🔊'),
-        h('div', { class: 'body' },
-          h('div', { class: 'title' }, 'Голос для озвучки'),
-          h('div', { class: 'meta' }, chosenVoice === 'neural' ? 'Живой голос' : (currentVoice() ? currentVoice().name : 'Выбрать голос')))));
-    }
     append(app, list);
   }
 
