@@ -185,3 +185,4 @@ h2 { font-size: 20px; margin: 4px 0 12px; }
   background: rgba(127,127,127,.3); color: inherit; border: none; border-radius: 8px;
   padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer;
 }
+.list-label { color: var(--hint); font-size: 13px; font-weight: 600; margin: 10px 0 0; }

@@ -119,7 +119,32 @@
      (нейросетевые голоса Google / Apple / Microsoft), или тот, что выбрал пользователь. */
   var speechOk = 'speechSynthesis' in window;
   var voices = [];
-  var chosenVoice = localGet('voice') || '';
+  var chosenVoice = localGet('voice') || 'neural';
+
+  // Заранее записанные нейросетевым голосом фразы (папка audio/, создаёт GitHub)
+  var audioSet = {};
+  var audioCount = 0;
+  var player = null;
+  try {
+    fetch('audio/index.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (list) { list.forEach(function (k) { audioSet[k] = 1; }); audioCount = list.length; })
+      .catch(function () {});
+  } catch (e) {}
+  function canSpeak() { return speechOk || audioCount > 0; }
+  function playRecorded(text) {
+    if (chosenVoice !== 'neural' || !window.speechKey) return false;
+    var k = window.speechKey(text);
+    if (!audioSet[k]) return false;
+    try {
+      if (speechOk) speechSynthesis.cancel();
+      if (player) player.pause();
+      player = new Audio('audio/' + k + '.mp3');
+      var pr = player.play();
+      if (pr && pr.catch) pr.catch(function () { speakDevice(text); });
+      return true;
+    } catch (e) { return false; }
+  }
 
   function voiceScore(v) {
     var n = v.name.toLowerCase(), s = 0;
@@ -148,6 +173,10 @@
     return v || voices[0] || null;
   }
   function speak(text) {
+    if (playRecorded(text)) return;
+    speakDevice(text);
+  }
+  function speakDevice(text) {
     if (!speechOk) return;
     try {
       speechSynthesis.cancel();
@@ -159,20 +188,34 @@
     } catch (e) {}
   }
   function speakBtn(text) {
-    return speechOk ? h('button', { class: 'speak', onclick: function () { speak(text); } }, '🔊 Послушать') : null;
+    return canSpeak() ? h('button', { class: 'speak', onclick: function () { speak(text); } }, '🔊 Послушать') : null;
   }
 
   function renderVoices() {
     screen(renderHome);
     loadVoices();
     append(app, h('h2', {}, '🔊 Голос для озвучки'));
+    append(app, h('p', { class: 'sub' }, 'Нажмите на голос, чтобы послушать и выбрать.'));
+    var list = h('div', { class: 'list' });
+    var neuralOn = chosenVoice === 'neural';
+    append(list, h('button', { class: 'card' + (neuralOn ? ' highlight' : ''), onclick: function () {
+      chosenVoice = 'neural';
+      localSet('voice', 'neural');
+      speak("Hi! I'm going to help you practise your English.");
+      renderVoices();
+    } },
+      h('div', { class: 'icon' }, '🎙'),
+      h('div', { class: 'body' },
+        h('div', { class: 'title' }, 'Живой голос (рекомендуется)'),
+        h('div', { class: 'meta' }, audioCount
+          ? 'Нейросетевая запись · озвучено фраз: ' + audioCount
+          : 'Записи ещё готовятся — пока будет голос устройства'))));
     if (!speechOk || !voices.length) {
-      append(app, h('div', { class: 'theory' }, 'На этом устройстве не нашлось английских голосов для озвучки.'));
+      append(app, list);
       return;
     }
-    append(app, h('p', { class: 'sub' }, 'Нажмите на голос, чтобы послушать и выбрать. Лучшие стоят сверху.'));
-    var cur = currentVoice();
-    var list = h('div', { class: 'list' });
+    append(list, h('div', { class: 'list-label' }, 'Голоса вашего устройства'));
+    var cur = neuralOn ? null : currentVoice();
     voices.forEach(function (v, i) {
       append(list, h('button', { class: 'card' + (cur && v.name === cur.name ? ' highlight' : ''), onclick: function () {
         chosenVoice = v.name;
@@ -181,7 +224,7 @@
         renderVoices();
       } },
         h('div', { class: 'body' },
-          h('div', { class: 'title' }, v.name + (i === 0 ? ' ⭐' : '')),
+          h('div', { class: 'title' }, v.name),
           h('div', { class: 'meta' }, v.lang + (v.localService ? '' : ' · онлайн')))));
     });
     append(app, list);
@@ -311,12 +354,12 @@
           h('div', { class: 'meta' }, sec.desc + ' · тем: ' + sec.topics.length),
           bar(sectionPercent(sec)))));
     });
-    if (speechOk) {
+    {
       append(list, h('button', { class: 'card', onclick: renderVoices },
         h('div', { class: 'icon' }, '🔊'),
         h('div', { class: 'body' },
           h('div', { class: 'title' }, 'Голос для озвучки'),
-          h('div', { class: 'meta' }, currentVoice() ? currentVoice().name : 'Выбрать голос'))));
+          h('div', { class: 'meta' }, chosenVoice === 'neural' ? 'Живой голос' : (currentVoice() ? currentVoice().name : 'Выбрать голос')))));
     }
     append(app, list);
   }
@@ -528,7 +571,7 @@
       h('div', { class: 'tip-word' }, word),
       tr ? h('div', { class: 'tip-tr' }, tr) : h('div', { class: 'tip-tr muted' }, 'Нет в словарике'),
       h('div', { class: 'tip-actions' },
-        speechOk ? h('button', { onclick: function () { speak(word); } }, '🔊') : null,
+        canSpeak() ? h('button', { onclick: function () { speak(word); } }, '🔊') : null,
         !tr ? h('button', { onclick: function () { openTranslator(word); } }, 'Открыть переводчик ↗') : null));
     document.body.appendChild(tipEl);
     var r = span.getBoundingClientRect();
