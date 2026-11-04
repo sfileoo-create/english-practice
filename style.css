@@ -201,3 +201,18 @@ h2 { font-size: 20px; margin: 4px 0 12px; }
 .welcome h1 { margin: 6px 0; }
 .home-card { cursor: default; align-items: flex-start; }
 .btn.small { padding: 9px 12px; font-size: 14px; margin-top: 10px; }
+
+/* ── Перетаскивание слов ── */
+.token { touch-action: none; user-select: none; -webkit-user-select: none; }
+.token.dragging { opacity: .25; }
+.token.ghost {
+  position: fixed; z-index: 100; pointer-events: none; margin: 0;
+  background: var(--accent); color: var(--accent-text); border-color: transparent;
+  box-shadow: 0 8px 20px rgba(0,0,0,.25); transform: scale(1.05);
+}
+.answer-area { transition: border-color .15s, background .15s; align-items: center; }
+.answer-area.over { border-color: var(--accent); background: rgba(52,120,246,.06); }
+.answer-ph { color: var(--hint); font-size: 14px; padding: 6px; }
+.caret { display: inline-block; width: 3px; height: 30px; border-radius: 2px; background: var(--accent); }
+.learned { background: var(--card); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px; }
+.learned .meta { color: var(--hint); font-size: 13px; margin-top: 8px; }

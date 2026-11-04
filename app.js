@@ -7,6 +7,8 @@
   if (inTg) {
     tg.ready();
     tg.expand();
+    // чтобы перетаскивание слов не сворачивало приложение свайпом вниз
+    try { if (tg.isVersionAtLeast('7.7') && tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {}
     document.body.classList.add('in-tg');
     tg.BackButton.onClick(function () { if (backAction) backAction(); });
   }
@@ -68,6 +70,26 @@
   var selected = {};   // { sectionId: [topicId, ...] } — отмеченные галочками темы
 
   function saveProgress() { storeSet('progress', JSON.stringify(progress)); }
+
+  /* Учёт слов: для каждого слова счёт верных ответов подряд (0–3).
+     Слово считается выученным со счётом 2 и выше. Хранится отдельно по темам. */
+  var wordStats = {};   // { topicId: { word: score } }
+  var LEARNED = 2;
+  function wordTopics() {
+    var list = [];
+    CONTENT.sections.forEach(function (s) { s.topics.forEach(function (t) { if (t.words || t.verbs) list.push(t); }); });
+    return list;
+  }
+  function recordWord(item, ok) {
+    if (!item.q.wk) return;
+    var st = wordStats[item.topicId] || (wordStats[item.topicId] = {});
+    st[item.q.wk] = ok ? Math.min(3, (st[item.q.wk] || 0) + 1) : 0;
+    storeSet('w_' + item.topicId, JSON.stringify(st));
+  }
+  function learnedCount(t) {
+    var st = wordStats[t.id] || {};
+    return (t.words || t.verbs).filter(function (e) { return (st[e[0]] || 0) >= LEARNED; }).length;
+  }
   function saveSelected() { storeSet('selected', JSON.stringify(selected)); }
   function saveMistakes() {
     var json = JSON.stringify(mistakes);
@@ -292,7 +314,16 @@
     if (topic.verbs) return topic.verbs.map(function (v) { return { topicId: topic.id, q: verbQuestion(v, topic.verbs, mode) }; });
     return [];
   }
-  function buildQuestions(topic) { return shuffle(topicItems(topic)).slice(0, 10); }
+  function buildQuestions(topic) {
+    var items = shuffle(topicItems(topic));
+    if (topic.words || topic.verbs) {
+      // сначала слова, которые ещё не выучены
+      var st = wordStats[topic.id] || {};
+      items.sort(function (a, b) { return (st[a.q.wk] || 0) - (st[b.q.wk] || 0); });
+      return shuffle(items.slice(0, 10));
+    }
+    return items.slice(0, 10);
+  }
 
   // Несколько тем: берём вопросы по очереди из каждой, чтобы всех было поровну
   function buildMixed(topics, n) {
@@ -309,15 +340,15 @@
     var r = Math.random();
     var explain = en + ' — ' + ru;
     if (mode === 'write') {
-      return { type: 'input', q: 'Напишите по-английски: «' + ru + '»', answers: [en], explain: explain, say: en };
+      return { type: 'input', q: 'Напишите по-английски: «' + ru + '»', answers: [en], explain: explain, say: en, wk: en };
     }
     if (r < 0.5) {
       var wrongRu = pick(all.map(function (x) { return x[1]; }), 3, [ru]);
-      return { type: 'choice', q: 'Как переводится «' + en + '»?', options: [ru].concat(wrongRu), explain: explain, say: en };
+      return { type: 'choice', q: 'Как переводится «' + en + '»?', options: [ru].concat(wrongRu), explain: explain, say: en, wk: en };
     }
     {
       var wrongEn = pick(all.map(function (x) { return x[0]; }), 3, [en]);
-      return { type: 'choice', q: 'Как по-английски «' + ru + '»?', options: [en].concat(wrongEn), explain: explain, say: en };
+      return { type: 'choice', q: 'Как по-английски «' + ru + '»?', options: [en].concat(wrongEn), explain: explain, say: en, wk: en };
     }
   }
 
@@ -329,7 +360,7 @@
     var explain = base + ' — ' + v2 + ' — ' + v3 + ' (' + ru + ')';
     var say = base + ', ' + v2.replace('/', ', ') + ', ' + v3;
     if (mode === 'write') {
-      return { type: 'input', q: label + ' глагола «' + base + '»', hint: ru, answers: correct.split('/').concat([correct]), explain: explain, say: say };
+      return { type: 'input', q: label + ' глагола «' + base + '»', hint: ru, answers: correct.split('/').concat([correct]), explain: explain, say: say, wk: base };
     }
     var wrong = [];
     [askV3 ? v2 : v3, base + 'ed', base].forEach(function (x) {
@@ -341,7 +372,7 @@
       var x = others.splice(Math.floor(Math.random() * others.length), 1)[0];
       if (x !== correct && wrong.indexOf(x) === -1) wrong.push(x);
     }
-    return { type: 'choice', q: label + ' глагола «' + base + '» (' + ru + ')', options: [correct].concat(wrong.slice(0, 3)), explain: explain, say: say };
+    return { type: 'choice', q: label + ' глагола «' + base + '» (' + ru + ')', options: [correct].concat(wrong.slice(0, 3)), explain: explain, say: say, wk: base };
   }
 
   /* ───────────── Прогресс ───────────── */
@@ -353,6 +384,10 @@
     saveProgress();
   }
   function topicStat(t) {
+    if (t.words || t.verbs) {
+      var total = (t.words || t.verbs).length, got = learnedCount(t);
+      return { text: 'Выучено: ' + got + ' из ' + total, pct: Math.round(got / total * 100) };
+    }
     var p = progress[t.id];
     if (!p || (!p.total && !p.runs)) return { text: 'Ещё не начато', pct: 0 };
     var acc = p.total ? Math.round(p.right / p.total * 100) : p.best;
@@ -538,6 +573,13 @@
       append(app, seg);
     }
     var n = Math.min(10, topicSize(topic));
+    if (topic.words || topic.verbs) {
+      var got = learnedCount(topic), all = topicSize(topic);
+      append(app, h('div', { class: 'learned' },
+        h('div', {}, '📈 Выучено: ', h('b', {}, got + ' из ' + all)),
+        bar(Math.round(got / all * 100)),
+        h('div', { class: 'meta' }, 'Слово считается выученным после двух верных ответов подряд. В тренировку сначала попадают невыученные.')));
+    }
     append(app, h('p', { class: 'sub' }, 'Вопросов в тренировке: ' + n));
     append(app, h('button', { class: 'btn', onclick: function () {
       startSession(buildQuestions(topic), { topic: topic, sec: sec });
@@ -605,6 +647,7 @@
   function answered(item, ok, correctText, extra) {
     var q = item.q;
     record(item, ok);
+    recordWord(item, ok);
     if (ok) { session.correct++; haptic('success'); if (item.fromMistakes) removeMistake(item); }
     else { haptic('error'); session.wrongItems.push(item); addMistake(item); }
 
@@ -835,39 +878,124 @@
     setTimeout(function () { input.focus(); }, 100);
   }
 
+  /* Собрать предложение: слова можно нажимать (встают в конец) или перетаскивать
+     в любое место предложения, а внутри предложения — переставлять */
   function renderOrder(q, area, item) {
     append(area, h('div', { class: 'question' }, q.ru));
-    append(area, h('div', { class: 'qhint' }, 'Нажимайте на слова по порядку'));
+    append(area, h('div', { class: 'qhint' }, 'Нажмите на слово или перетащите его в нужное место. Порядок в предложении тоже можно менять перетаскиванием.'));
     var words = q.en.split(' ');
     var tokens = words.map(function (w, i) { return { w: w, id: i }; });
     var chosen = [];
     var pool = shuffle(tokens);
     if (pool.map(function (t) { return t.w; }).join(' ') === q.en && tokens.length > 1) pool.reverse();
+    var locked = false;
     var answerEl = h('div', { class: 'answer-area' });
     var poolEl = h('div', { class: 'pool' });
+    var caret = h('span', { class: 'caret' });
     var check = h('button', { class: 'btn', disabled: true, onclick: function () {
+      locked = true;
       var built = chosen.map(function (t) { return t.w; }).join(' ');
       var ok = normalize(built) === normalize(q.en);
       check.style.display = 'none';
       answerEl.style.borderColor = ok ? 'var(--ok)' : 'var(--bad)';
-      Array.prototype.forEach.call(app.querySelectorAll('.token'), function (b) { b.disabled = true; });
+      Array.prototype.forEach.call(area.querySelectorAll('.token'), function (b) { b.disabled = true; });
       item.q.say = q.en;
       answered(item, ok, q.en);
     } }, 'Проверить');
 
+    function tapMove(t, from) {
+      if (from === 'pool') { pool.splice(pool.indexOf(t), 1); chosen.push(t); }
+      else { chosen.splice(chosen.indexOf(t), 1); pool.push(t); }
+      tap();
+      draw();
+    }
+
+    function inside(el, x, y, pad) {
+      var r = el.getBoundingClientRect();
+      return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+    }
+    // Куда вставить слово: индекс среди слов предложения (без перетаскиваемого)
+    function dropIndex(x, y, skipEl) {
+      var els = Array.prototype.filter.call(answerEl.querySelectorAll('.token'), function (e) { return e !== skipEl; });
+      for (var i = 0; i < els.length; i++) {
+        var r = els[i].getBoundingClientRect();
+        if (y < r.top) return i;
+        if (y <= r.bottom && x < r.left + r.width / 2) return i;
+      }
+      return els.length;
+    }
+    function showCaret(idx, skipEl) {
+      var els = Array.prototype.filter.call(answerEl.querySelectorAll('.token'), function (e) { return e !== skipEl; });
+      if (idx < els.length) answerEl.insertBefore(caret, els[idx]); else answerEl.appendChild(caret);
+    }
+    function hideCaret() { if (caret.parentNode) caret.parentNode.removeChild(caret); }
+
+    function makeToken(t, from) {
+      var btn = h('button', { class: 'token' }, t.w);
+      btn.addEventListener('pointerdown', function (e) {
+        if (locked || (e.button !== undefined && e.button !== 0)) return;
+        e.preventDefault();
+        var st = { x: e.clientX, y: e.clientY, moved: false, ghost: null, ox: 0, oy: 0 };
+        try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+        function move(ev) {
+          if (!st.moved) {
+            if (Math.abs(ev.clientX - st.x) + Math.abs(ev.clientY - st.y) < 8) return;
+            st.moved = true;
+            var r = btn.getBoundingClientRect();
+            st.ox = st.x - r.left; st.oy = st.y - r.top;
+            st.ghost = btn.cloneNode(true);
+            st.ghost.className = 'token ghost';
+            st.ghost.style.width = r.width + 'px';
+            document.body.appendChild(st.ghost);
+            btn.classList.add('dragging');
+            tap();
+          }
+          st.ghost.style.left = (ev.clientX - st.ox) + 'px';
+          st.ghost.style.top = (ev.clientY - st.oy) + 'px';
+          if (inside(answerEl, ev.clientX, ev.clientY, 24)) {
+            answerEl.classList.add('over');
+            showCaret(dropIndex(ev.clientX, ev.clientY, btn), btn);
+          } else {
+            answerEl.classList.remove('over');
+            hideCaret();
+          }
+        }
+        function end(ev, cancelled) {
+          btn.removeEventListener('pointermove', move);
+          btn.removeEventListener('pointerup', up);
+          btn.removeEventListener('pointercancel', cancel);
+          if (st.ghost) st.ghost.remove();
+          answerEl.classList.remove('over');
+          if (!st.moved) { hideCaret(); if (!cancelled) tapMove(t, from); return; }
+          var x = ev.clientX, y = ev.clientY;
+          if (!cancelled && inside(answerEl, x, y, 24)) {
+            var idx = dropIndex(x, y, btn);
+            if (from === 'pool') pool.splice(pool.indexOf(t), 1); else chosen.splice(chosen.indexOf(t), 1);
+            chosen.splice(idx, 0, t);
+            tap();
+          } else if (!cancelled && from === 'answer' && inside(poolEl, x, y, 40)) {
+            chosen.splice(chosen.indexOf(t), 1);
+            pool.push(t);
+            tap();
+          }
+          hideCaret();
+          draw();
+        }
+        function up(ev) { end(ev, false); }
+        function cancel(ev) { end(ev, true); }
+        btn.addEventListener('pointermove', move);
+        btn.addEventListener('pointerup', up);
+        btn.addEventListener('pointercancel', cancel);
+      });
+      return btn;
+    }
+
     function draw() {
       answerEl.innerHTML = '';
       poolEl.innerHTML = '';
-      chosen.forEach(function (t) {
-        append(answerEl, h('button', { class: 'token', onclick: function () {
-          chosen.splice(chosen.indexOf(t), 1); pool.push(t); tap(); draw();
-        } }, t.w));
-      });
-      pool.forEach(function (t) {
-        append(poolEl, h('button', { class: 'token', onclick: function () {
-          pool.splice(pool.indexOf(t), 1); chosen.push(t); tap(); draw();
-        } }, t.w));
-      });
+      if (!chosen.length) append(answerEl, h('span', { class: 'answer-ph' }, 'Перетащите или нажмите слова'));
+      chosen.forEach(function (t) { append(answerEl, makeToken(t, 'answer')); });
+      pool.forEach(function (t) { append(poolEl, makeToken(t, 'pool')); });
       check.disabled = pool.length > 0;
     }
     draw();
@@ -932,7 +1060,13 @@
   }
 
   /* ───────────── Старт ───────────── */
-  Promise.all([storeGet('progress'), storeGet('mistakes'), storeGet('selected')]).then(function (vals) {
+  var wt = wordTopics();
+  Promise.all([storeGet('progress'), storeGet('mistakes'), storeGet('selected')].concat(
+    wt.map(function (t) { return storeGet('w_' + t.id); })
+  )).then(function (vals) {
+    wt.forEach(function (t, i) {
+      try { wordStats[t.id] = JSON.parse(vals[3 + i]) || {}; } catch (e) { wordStats[t.id] = {}; }
+    });
     try { progress = JSON.parse(vals[0]) || {}; } catch (e) { progress = {}; }
     try { mistakes = JSON.parse(vals[1]) || []; } catch (e) { mistakes = []; }
     try { selected = JSON.parse(vals[2]) || {}; } catch (e) { selected = {}; }
