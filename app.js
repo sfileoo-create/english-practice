@@ -40,9 +40,51 @@
     } catch (e) {}
   }
 
+  /* ───────────── Звуки ─────────────
+     Свои звуки, которые синтезируются прямо в приложении (никаких файлов). */
+  var soundOn = localGet('sound') !== 'off';
+  var actx = null;
+  function audioCtx() {
+    try {
+      if (!actx) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return null; actx = new C(); }
+      if (actx.state === 'suspended') actx.resume();
+      return actx;
+    } catch (e) { return null; }
+  }
+  function tone(freq, start, dur, type, vol, glideTo) {
+    var c = audioCtx(); if (!c) return;
+    var t = c.currentTime + start, o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function sfx(name) {
+    if (!soundOn) return;
+    try {
+      if (name === 'tap') tone(700, 0, 0.05, 'triangle', 0.05);
+      else if (name === 'place') { tone(480, 0, 0.09, 'triangle', 0.09, 760); }
+      else if (name === 'correct') { tone(784, 0, 0.16, 'sine', 0.14); tone(1175, 0.09, 0.28, 'sine', 0.13); tone(2350, 0.09, 0.12, 'sine', 0.02); }
+      else if (name === 'wrong') { tone(240, 0, 0.22, 'triangle', 0.12, 170); tone(120, 0, 0.25, 'sine', 0.08); }
+      else if (name === 'reveal') tone(520, 0, 0.14, 'sine', 0.06, 1040);
+      else if (name === 'done') { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.09, 0.32, 'sine', 0.12); }); tone(2093, 0.36, 0.4, 'sine', 0.03); }
+      else if (name === 'meh') { [523, 659, 784].forEach(function (f, i) { tone(f, i * 0.1, 0.25, 'sine', 0.09); }); }
+    } catch (e) {}
+  }
+  function impact(kind) {
+    try { if (inTg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(kind || 'light'); } catch (e) {}
+  }
+
   function tap() {
     try { if (inTg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); } catch (e) {}
+    sfx('tap');
   }
+  // слово встало на место: щелчок-«плюх» и лёгкая вибрация
+  function place() { impact('light'); sfx('place'); }
 
   /* ───────────── Хранилище (Telegram CloudStorage + localStorage) ───────────── */
   function cloudOk() {
@@ -63,6 +105,59 @@
   function storeSet(key, val) {
     localSet(key, val);
     if (cloudOk()) { try { tg.CloudStorage.setItem(key, val, function () {}); } catch (e) {} }
+  }
+
+  /* ───────────── Мой словарь ─────────────
+     Слова каждого человека хранятся в его Telegram (CloudStorage), частями по 3500 символов. */
+  var myWords = [];   // [{ en, ru }]
+  var MY_SEC = { id: 'my', icon: '📒', title: 'Мой словарь', desc: 'Ваши собственные слова', custom: true,
+    topics: [{ id: 'my', title: 'Мой словарь', words: [] }] };
+  (function () {
+    var i = CONTENT.sections.map(function (x) { return x.id; }).indexOf('vocab');
+    CONTENT.sections.splice(i + 1, 0, MY_SEC);
+  })();
+  function myTopic() { return MY_SEC.topics[0]; }
+  function syncMyTopic() { myTopic().words = myWords.map(function (w) { return [w.en, w.ru]; }); }
+  function saveMyWords() {
+    var json = JSON.stringify(myWords), parts = [];
+    for (var i = 0; i < json.length; i += 3500) parts.push(json.slice(i, i + 3500));
+    parts.forEach(function (part, k) { storeSet('mywords_' + k, part); });
+    storeSet('mywords_n', String(parts.length));
+    syncMyTopic();
+  }
+  function loadMyWords() {
+    return storeGet('mywords_n').then(function (n) {
+      n = parseInt(n, 10) || 0;
+      var ps = [];
+      for (var k = 0; k < n; k++) ps.push(storeGet('mywords_' + k));
+      return Promise.all(ps).then(function (parts) {
+        try { myWords = JSON.parse(parts.join('')) || []; } catch (e) { myWords = []; }
+        syncMyTopic();
+      });
+    });
+  }
+  function suggestTranslation(en) {
+    var w = String(en).trim().toLowerCase(), found = null;
+    if (!w) return null;
+    CONTENT.sections.forEach(function (sec) {
+      if (sec.custom) return;
+      sec.topics.forEach(function (t) {
+        (t.words || []).forEach(function (pair) { if (!found && pair[0].toLowerCase() === w) found = pair[1]; });
+      });
+    });
+    return found || (window.GLOSSARY || {})[w] || null;
+  }
+  function hasMyWord(en) {
+    var w = String(en).trim().toLowerCase();
+    return myWords.some(function (x) { return x.en.toLowerCase() === w; });
+  }
+  function addMyWord(en, ru) {
+    en = String(en).trim(); ru = String(ru).trim();
+    if (!en || !ru) return 'Напишите слово и перевод';
+    if (hasMyWord(en)) return 'Это слово уже есть в вашем словаре';
+    myWords.unshift({ en: en, ru: ru });
+    saveMyWords();
+    return null;
   }
 
   var progress = {};   // { topicId: { best, runs, right, total } }
@@ -161,6 +256,7 @@
   function screen(onBack) {
     if (typeof closeTip === 'function') closeTip();
     app.innerHTML = '';
+    app.classList.remove('enter'); void app.offsetWidth; app.classList.add('enter');
     window.scrollTo(0, 0);
     backAction = onBack || null;
     if (inTg) { if (onBack) tg.BackButton.show(); else tg.BackButton.hide(); }
@@ -235,8 +331,50 @@
     var v = voices.filter(function (x) { return x.name === chosenVoice; })[0];
     return v || voices[0] || null;
   }
+  // Слова без нашей записи (например, из «Моего словаря») — произношение из открытого словаря
+  var dictAudio = {};   // слово → ссылка на mp3 ('' — нет записи)
+  function dictWord(text) {
+    var w = String(text).trim().toLowerCase();
+    return /^[a-z][a-z'-]*$/.test(w) ? w : null;
+  }
+  function prefetchDict(text, cb) {
+    var w = dictWord(text);
+    if (!w) { if (cb) cb(''); return; }
+    if (w in dictAudio) { if (cb) cb(dictAudio[w]); return; }
+    try {
+      fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(w))
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (data) {
+          var any = '', us = '';
+          (Array.isArray(data) ? data : []).forEach(function (e) {
+            (e.phonetics || []).forEach(function (ph) {
+              if (!ph.audio) return;
+              if (!any) any = ph.audio;
+              if (!us && /-us\.mp3$/.test(ph.audio)) us = ph.audio;
+            });
+          });
+          dictAudio[w] = us || any || '';
+          if (cb) cb(dictAudio[w]);
+        })
+        .catch(function () { dictAudio[w] = ''; if (cb) cb(''); });
+    } catch (e) { if (cb) cb(''); }
+  }
+  function playUrl(url, text) {
+    try {
+      if (speechOk) speechSynthesis.cancel();
+      if (player) player.pause();
+      player = new Audio(url);
+      var pr = player.play();
+      if (pr && pr.catch) pr.catch(function () { speakDevice(text); });
+    } catch (e) { speakDevice(text); }
+  }
   function speak(text) {
     if (playRecorded(text)) return;
+    var w = dictWord(text);
+    if (w && dictAudio[w]) return playUrl(dictAudio[w], text);
+    if (w && !(w in dictAudio)) {
+      return prefetchDict(text, function (url) { if (url) playUrl(url, text); else speakDevice(text); });
+    }
     speakDevice(text);
   }
   function speakDevice(text) {
@@ -282,6 +420,7 @@
   function topicItems(topic) {
     var sec = sectionOfTopicId(topic.id);
     var mode = sec ? answerMode(sec) : 'choose';
+    if (topic.words && topic.words.length < 4) mode = 'write';
     if (topic.questions) return topic.questions.map(function (q) {
       if (sec && sec.multi && !q.wk && window.speechKey) q.wk = window.speechKey(q.q);
       return { topicId: topic.id, q: q };
@@ -366,6 +505,7 @@
     }
     if (t.words || t.verbs) {
       var total = (t.words || t.verbs).length, got = learnedCount(t);
+      if (!total) return { text: 'Пока нет слов', pct: 0 };
       return { text: 'Выучено: ' + got + ' из ' + total, pct: Math.round(got / total * 100) };
     }
     var p = progress[t.id];
@@ -379,13 +519,32 @@
     return Math.round(sum / sec.topics.length);
   }
 
+  /* ───────────── Маскот ───────────── */
+  function mascot(mood, size, cls) {
+    var el = h('div', { class: 'mascot ' + (cls || ''), style: 'width:' + size + 'px;height:' + size + 'px', 'aria-hidden': 'true' });
+    el.innerHTML = (window.MASCOT && window.MASCOT[mood]) || '';
+    return el;
+  }
+  function pick1(list) { return list[Math.floor(Math.random() * list.length)]; }
+
   /* ───────────── Экраны ───────────── */
   function renderHome() {
     if (!localGet('welcomed')) return renderWelcome();
     screen(null);
     var name = inTg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name;
-    append(app, h('h1', {}, name ? 'Hi, ' + name + '! 👋' : 'English Practice 👋'));
-    append(app, h('p', { class: 'sub' }, 'Выберите, чем заняться сейчас'));
+    var soundBtn = h('button', { class: 'sound-btn', 'aria-label': soundOn ? 'Выключить звуки' : 'Включить звуки', onclick: function () {
+      soundOn = !soundOn;
+      localSet('sound', soundOn ? 'on' : 'off');
+      if (soundOn) sfx('correct');
+      impact('light');
+      renderHome();
+    } }, soundOn ? '🔊' : '🔇');
+    append(app, h('div', { class: 'home-head' },
+      mascot('calm', 64, 'bob'),
+      h('div', { class: 'home-hi' },
+        h('h1', {}, name ? 'Hi, ' + name + '!' : 'Hi there!'),
+        h('p', { class: 'sub' }, 'Чем займёмся сейчас?')),
+      soundBtn));
     var list = h('div', { class: 'list' });
     if (homeSupported() && homeStatus !== 'added' && homeStatus !== 'unsupported' && !localGet('home_hide') && !localGet('home_added')) {
       append(list, h('div', { class: 'card home-card' },
@@ -409,9 +568,89 @@
         h('div', { class: 'icon' }, sec.icon),
         h('div', { class: 'body' },
           h('div', { class: 'title' }, sec.title),
-          h('div', { class: 'meta' }, sec.desc + ' · тем: ' + sec.topics.length),
+          h('div', { class: 'meta' }, sec.custom
+            ? (myWords.length ? 'Ваших слов: ' + myWords.length : 'Добавляйте свои слова для изучения')
+            : sec.desc + ' · тем: ' + sec.topics.length),
           bar(sectionPercent(sec)))));
     });
+    append(app, list);
+  }
+
+  function renderMyDict() {
+    screen(renderHome);
+    var t = myTopic();
+    append(app, h('h2', {}, '📒 Мой словарь'));
+    append(app, h('p', { class: 'sub' }, 'Добавляйте слова, которые хотите выучить. Они сохраняются в вашем Telegram.'));
+    var en = h('input', { class: 'input', type: 'text', placeholder: 'Слово по-английски', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'Слово по-английски' });
+    var ru = h('input', { class: 'input', type: 'text', placeholder: 'Перевод', autocomplete: 'off', 'aria-label': 'Перевод' });
+    var hint = h('div', { class: 'suggest' });
+    var err = h('div', { class: 'form-err', role: 'status' });
+    en.addEventListener('input', function () {
+      hint.innerHTML = '';
+      err.textContent = '';
+      var sug = suggestTranslation(en.value);
+      if (sug && !ru.value.trim()) {
+        append(hint, h('button', { class: 'chip suggest-chip', onclick: function () { ru.value = sug.split(';')[0]; hint.innerHTML = ''; tap(); ru.focus(); } }, 'Подставить: ' + sug.split(';')[0]));
+      }
+    });
+    function submit() {
+      var e = addMyWord(en.value, ru.value);
+      if (e) { err.textContent = e; impact('medium'); sfx('wrong'); return; }
+      place(); sfx('correct');
+      renderMyDict();
+      var first = app.querySelector('.word-row');
+      if (first) first.classList.add('just-added');
+    }
+    en.addEventListener('keydown', function (e) { if (e.key === 'Enter') ru.focus(); });
+    ru.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+    append(app, h('div', { class: 'add-form' }, en, hint, ru, err, h('button', { class: 'btn', onclick: submit }, 'Добавить слово')));
+
+    if (!myWords.length) {
+      append(app, h('div', { class: 'empty' },
+        mascot('cheer', 110, 'pop'),
+        h('p', {}, 'Пока пусто. Добавьте первое слово — или нажмите на любое слово в заданиях на времена и выберите «В мой словарь».')));
+      return;
+    }
+    var got = learnedCount(t);
+    append(app, h('div', { class: 'learned' },
+      h('div', {}, '📈 Выучено: ', h('b', {}, got + ' из ' + myWords.length)),
+      bar(Math.round(got / myWords.length * 100))));
+    if (myWords.length >= 4) {
+      var mode = answerMode(MY_SEC);
+      var seg = h('div', { class: 'seg' });
+      [['choose', '👆 Выбирать'], ['write', '✍️ Писать']].forEach(function (m) {
+        append(seg, h('button', { class: 'seg-btn' + (mode === m[0] ? ' on' : ''), onclick: function () {
+          localSet('mode_my', m[0]); tap(); renderMyDict();
+        } }, m[1]));
+      });
+      append(app, h('div', { class: 'step-title' }, 'Как отвечать'));
+      append(app, seg);
+    } else {
+      append(app, h('p', { class: 'sub' }, 'Пока слов меньше четырёх, тренируемся в режиме «писать». С четырёх слов появится выбор из вариантов.'));
+    }
+    append(app, h('button', { class: 'btn', onclick: function () {
+      startSession(buildQuestions(t), { topic: t, sec: MY_SEC });
+    } }, 'Тренировать мои слова'));
+
+    var st = wordStats.my || {};
+    var list = h('div', { class: 'word-list' });
+    myWords.forEach(function (w, i) {
+      if (i < 30) prefetchDict(w.en);
+      var learned = (st[w.en] || 0) >= LEARNED;
+      append(list, h('div', { class: 'word-row' },
+        h('div', { class: 'wr-text' },
+          h('div', { class: 'wr-en' }, w.en, learned ? h('span', { class: 'wr-badge' }, 'выучено') : null),
+          h('div', { class: 'wr-ru' }, w.ru)),
+        h('button', { class: 'icon-btn', 'aria-label': 'Послушать ' + w.en, onclick: function () { speak(w.en); } }, '🔊'),
+        h('button', { class: 'icon-btn', 'aria-label': 'Удалить ' + w.en, onclick: function () {
+          myWords = myWords.filter(function (x) { return x !== w; });
+          if (wordStats.my) { delete wordStats.my[w.en]; storeSet('w_my', JSON.stringify(wordStats.my)); }
+          saveMyWords();
+          impact('light');
+          renderMyDict();
+        } }, '✕')));
+    });
+    append(app, h('div', { class: 'step-title', style: 'margin-top:18px' }, 'Все слова'));
     append(app, list);
   }
 
@@ -419,7 +658,7 @@
   function renderWelcome() {
     screen(null);
     append(app, h('div', { class: 'welcome' },
-      h('div', { class: 'big' }, '👋'),
+      mascot('happy', 150, 'pop'),
       h('h1', {}, 'Привет! Это English Practice'),
       h('p', { class: 'sub' }, 'Тренируйте времена, слова и разговорные фразы по 5 минут в день.')));
     append(app, h('div', { class: 'theory', html:
@@ -441,6 +680,7 @@
   }
 
   function renderSection(sec) {
+    if (sec.custom) return renderMyDict();
     if (sec.multi) return renderMultiSection(sec);
     screen(renderHome);
     append(app, h('h2', {}, sec.icon + ' ' + sec.title));
@@ -575,7 +815,7 @@
   function exitSession() {
     var c = session.ctx;
     if (c.mistakes) renderHome();
-    else if (c.multi) renderSection(c.sec);
+    else if (c.multi || (c.sec && c.sec.custom)) renderSection(c.sec);
     else renderIntro(c.topic, c.sec);
   }
   function restartSession() {
@@ -610,6 +850,7 @@
       h('span', {}, '✅ ' + session.correct)));
     append(app, bar(Math.round(session.i / total * 100)));
 
+    if (item.topicId === 'my' && q.say) prefetchDict(q.say);
     var area = h('div', {});
     append(app, area);
     if (isTenseItem(item)) renderTense(q, area, item);
@@ -623,12 +864,14 @@
     var q = item.q;
     record(item, ok);
     recordWord(item, ok);
-    if (ok) { session.correct++; haptic('success'); if (item.fromMistakes) removeMistake(item); }
-    else { haptic('error'); session.wrongItems.push(item); addMistake(item); }
+    if (ok) { session.correct++; haptic('success'); sfx('correct'); if (item.fromMistakes) removeMistake(item); }
+    else { haptic('error'); sfx('wrong'); session.wrongItems.push(item); addMistake(item); }
 
     var last = session.i === session.items.length - 1;
+    var title = ok ? pick1(['Верно!', 'Отлично!', 'Так держать!', 'Точно!', 'Супер!'])
+                   : pick1(['Почти! Ничего страшного.', 'Не беда, запомним.', 'Бывает! Смотри, как правильно.']);
     var fb = h('div', { class: 'feedback ' + (ok ? 'ok' : 'bad') },
-      h('b', {}, ok ? '✅ Верно!' : '❌ Неверно'),
+      h('div', { class: 'fb-head' }, mascot(ok ? 'happy' : 'cheer', 44, ok ? 'pop' : 'wobble'), h('b', {}, title)),
       extra || null,
       !extra && !ok && correctText ? h('div', {}, 'Правильно: ', h('strong', {}, correctText)) : null,
       q.explain ? h('div', { class: 'explain' }, q.explain) : null,
@@ -671,6 +914,14 @@
       tr ? h('div', { class: 'tip-tr' }, tr) : h('div', { class: 'tip-tr muted' }, 'Нет в словарике'),
       h('div', { class: 'tip-actions' },
         canSpeak() ? h('button', { onclick: function () { speak(word); } }, '🔊') : null,
+        tr && !hasMyWord(word) ? h('button', { onclick: function (e) {
+          e.stopPropagation();
+          addMyWord(word.toLowerCase(), tr.split(';')[0]);
+          place();
+          this.textContent = 'Добавлено ✓';
+          this.disabled = true;
+        } }, '＋ В мой словарь') : null,
+        tr && hasMyWord(word) ? h('span', { class: 'tip-note' }, 'Уже в вашем словаре') : null,
         !tr ? h('button', { onclick: function () { openTranslator(word); } }, 'Открыть переводчик ↗') : null));
     document.body.appendChild(tipEl);
     var r = span.getBoundingClientRect();
@@ -751,7 +1002,7 @@
     var gap = h('button', { class: 'gap-slot empty', onclick: function () {
       if (!placed || locked) return;
       placed = null;
-      tap();
+      place();
       drawWords();
     } }, '…');
     String(q.q).split('___').forEach(function (p, i, arr) {
@@ -774,7 +1025,7 @@
         var used = placed === w;
         append(wordsEl, h('button', { class: 'chip word' + (used ? ' used' : ''), disabled: used || locked, onclick: function () {
           placed = w;
-          tap();
+          place();
           drawWords();
         } }, w));
       });
@@ -842,6 +1093,7 @@
       var user = normalize(input.value);
       var ok = !empty && q.answers.some(function (a) { return normalize(a) === user; });
       input.style.borderColor = ok ? 'var(--ok)' : 'var(--bad)';
+      input.classList.add(ok ? 'ok-anim' : 'bad-anim');
       if (empty) input.placeholder = 'Без ответа';
       answered(item, ok, q.answers[0]);
     }
@@ -881,7 +1133,7 @@
     function tapMove(t, from) {
       if (from === 'pool') { pool.splice(pool.indexOf(t), 1); chosen.push(t); }
       else { chosen.splice(chosen.indexOf(t), 1); pool.push(t); }
-      tap();
+      place();
       draw();
     }
 
@@ -923,7 +1175,7 @@
             st.ghost.style.width = r.width + 'px';
             document.body.appendChild(st.ghost);
             btn.classList.add('dragging');
-            tap();
+            place();
           }
           st.ghost.style.left = (ev.clientX - st.ox) + 'px';
           st.ghost.style.top = (ev.clientY - st.oy) + 'px';
@@ -947,11 +1199,11 @@
             var idx = dropIndex(x, y, btn);
             if (from === 'pool') pool.splice(pool.indexOf(t), 1); else chosen.splice(chosen.indexOf(t), 1);
             chosen.splice(idx, 0, t);
-            tap();
+            place();
           } else if (!cancelled && from === 'answer' && inside(poolEl, x, y, 40)) {
             chosen.splice(chosen.indexOf(t), 1);
             pool.push(t);
-            tap();
+            place();
           }
           hideCaret();
           draw();
@@ -984,6 +1236,7 @@
     append(area, card);
     var show = h('button', { class: 'btn', onclick: function () {
       show.style.display = 'none';
+      sfx('reveal'); impact('light');
       append(card, h('div', { class: 'en' }, q.en), speakBtn(q.en));
       speak(q.en);
       var row = h('div', { class: 'row' },
@@ -994,8 +1247,8 @@
         row.remove();
         record(item, ok);
         session.i++;
-        if (ok) { session.correct++; haptic('success'); if (item.fromMistakes) removeMistake(item); }
-        else { haptic('warning'); session.wrongItems.push(item); addMistake(item); }
+        if (ok) { session.correct++; haptic('success'); sfx('correct'); if (item.fromMistakes) removeMistake(item); }
+        else { haptic('warning'); sfx('tap'); session.wrongItems.push(item); addMistake(item); }
         if (session.i >= session.items.length) renderResult(); else renderQuestion();
       }
     } }, 'Показать ответ');
@@ -1014,15 +1267,20 @@
       saveProgress();
     }
     screen(c.mistakes ? renderHome : function () { renderSection(c.sec); });
-    var emoji = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 40 ? '💪' : '🌱';
-    var msg = pct >= 90 ? 'Отлично! Почти без ошибок.'
+    var perfect = total > 0 && session.correct === total;
+    var mood = perfect ? 'celebrate' : pct >= 70 ? 'happy' : pct >= 40 ? 'cheer' : 'calm';
+    var msg = perfect ? 'Идеально! Ни одной ошибки.'
+      : pct >= 90 ? 'Отлично! Почти без ошибок.'
       : pct >= 70 ? 'Хороший результат!'
       : pct >= 40 ? 'Неплохо, ещё пара тренировок — и будет лучше.'
       : 'Начало положено. Ошибки сохранены — повторите их позже.';
-    append(app, h('div', { class: 'result' },
-      h('div', { class: 'big' }, emoji),
+    var res = h('div', { class: 'result' },
+      mascot(mood, 150, 'bounce'),
       h('div', { class: 'score' }, session.correct + ' из ' + total),
-      h('p', { class: 'sub' }, msg)));
+      h('p', { class: 'sub' }, msg));
+    append(app, res);
+    if (pct >= 70) { sfx('done'); haptic('success'); confetti(res, perfect ? 36 : 18); }
+    else { sfx('meh'); impact('medium'); }
     var wrong = session.wrongItems;
     append(app, h('button', { class: 'btn', onclick: restartSession }, c.mistakes ? 'Повторить ещё' : 'Ещё раз'));
     if (wrong.length && !c.mistakes) {
@@ -1032,6 +1290,19 @@
       } }, 'Повторить ошибки (' + wrong.length + ')'));
     }
     append(app, h('button', { class: 'btn secondary', onclick: renderHome }, 'На главную'));
+  }
+
+  function confetti(host, n) {
+    var colors = ['#F4C78F', '#FF8A3D', '#4CC9A6', '#8E5A35', '#FFC94D', '#F29A8B'];
+    var box = h('div', { class: 'confetti', 'aria-hidden': 'true' });
+    for (var i = 0; i < n; i++) {
+      var piece = h('i', { style: 'left:' + (Math.random() * 100) + '%;background:' + colors[i % colors.length] +
+        ';animation-delay:' + (Math.random() * 0.35).toFixed(2) + 's;animation-duration:' + (1.1 + Math.random() * 0.9).toFixed(2) + 's;' +
+        'transform:rotate(' + Math.round(Math.random() * 360) + 'deg)' });
+      append(box, piece);
+    }
+    host.appendChild(box);
+    setTimeout(function () { box.remove(); }, 2600);
   }
 
   /* ───────────── Старт ───────────── */
@@ -1045,6 +1316,6 @@
     try { progress = JSON.parse(vals[0]) || {}; } catch (e) { progress = {}; }
     try { mistakes = JSON.parse(vals[1]) || []; } catch (e) { mistakes = []; }
     try { selected = JSON.parse(vals[2]) || {}; } catch (e) { selected = {}; }
-    checkHome(renderHome);
+    loadMyWords().then(function () { checkHome(renderHome); }, function () { checkHome(renderHome); });
   });
 })();

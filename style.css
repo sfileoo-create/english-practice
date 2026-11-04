@@ -216,3 +216,87 @@ h2 { font-size: 20px; margin: 4px 0 12px; }
 .caret { display: inline-block; width: 3px; height: 30px; border-radius: 2px; background: var(--accent); }
 .learned { background: var(--card); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 14px; }
 .learned .meta { color: var(--hint); font-size: 13px; margin-top: 8px; }
+
+/* ───────── Капибара ───────── */
+.mascot { flex: 0 0 auto; display: inline-block; }
+.mascot svg { width: 100%; height: 100%; display: block; }
+.home-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.home-hi { flex: 1; min-width: 0; }
+.home-hi h1 { margin: 0; }
+.home-hi .sub { margin: 2px 0 0; }
+.sound-btn {
+  flex: 0 0 auto; width: 44px; height: 44px; border-radius: 22px; border: none; background: var(--card);
+  font-size: 20px; cursor: pointer;
+}
+.welcome .mascot { margin: 0 auto; }
+.result { position: relative; }
+.result .mascot { margin: 0 auto; }
+.fb-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.fb-head b { display: inline; margin: 0; font-size: 16px; }
+
+/* ───────── Микро-анимации ───────── */
+@keyframes enterUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes popIn { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes bounceIn { 0% { transform: translateY(30px) scale(.8); opacity: 0; } 55% { transform: translateY(-10px) scale(1.04); opacity: 1; } 75% { transform: translateY(3px); } 100% { transform: none; } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+@keyframes wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@keyframes pulseOk { 0% { transform: scale(1); } 40% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes fall { 0% { transform: translateY(-20px) rotate(0); opacity: 1; } 100% { transform: translateY(260px) rotate(540deg); opacity: 0; } }
+
+#app.enter > * { animation: enterUp .28s ease both; }
+#app.enter > *:nth-child(2) { animation-delay: .03s; }
+#app.enter > *:nth-child(3) { animation-delay: .06s; }
+#app.enter > *:nth-child(4) { animation-delay: .09s; }
+#app.enter > *:nth-child(n+5) { animation-delay: .12s; }
+
+.mascot.pop { animation: popIn .45s cubic-bezier(.2,.9,.3,1.3) both; }
+.mascot.bounce { animation: bounceIn .7s cubic-bezier(.2,.9,.3,1.2) both; }
+.mascot.bob { animation: bob 3s ease-in-out infinite; }
+.mascot.wobble { animation: wobble .5s ease both; }
+
+.card, .btn, .opt, .chip, .token, .seg-btn, .sound-btn, .speak, .rule-btn {
+  transition: transform .12s ease, background-color .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.card:active, .btn:active:not(:disabled), .opt:active:not(:disabled), .chip:active:not(:disabled),
+.seg-btn:active, .sound-btn:active, .speak:active, .rule-btn:active { transform: scale(.96); }
+
+.opt.correct, .chip.correct { animation: pulseOk .35s ease; }
+.opt.wrong, .chip.wrong { animation: shake .4s ease; }
+.gap-slot:not(.empty) { animation: popIn .25s ease; }
+.gap-slot.correct { animation: pulseOk .35s ease; }
+.gap-slot.wrong { animation: shake .4s ease; }
+.answer-area .token { animation: popIn .22s ease; }
+.feedback { animation: slideUp .28s ease both; }
+.input.ok-anim { animation: pulseOk .35s ease; }
+.check-row.checked .checkbox { animation: popIn .25s ease; }
+.flash .en { animation: slideUp .3s ease both; }
+
+.confetti { position: absolute; left: 0; right: 0; top: 0; height: 0; pointer-events: none; overflow: visible; }
+.confetti i { position: absolute; top: 0; width: 8px; height: 12px; border-radius: 2px; animation: fall 1.6s ease-in forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ───────── Мой словарь ───────── */
+.add-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.add-form .btn { margin-top: 0; }
+.suggest:empty { display: none; }
+.suggest-chip { font-size: 14px; padding: 8px 12px; }
+.form-err { color: var(--bad); font-size: 14px; min-height: 0; }
+.form-err:empty { display: none; }
+.empty { text-align: center; color: var(--hint); padding: 10px 0; }
+.empty .mascot { margin: 0 auto 6px; }
+.word-list { display: flex; flex-direction: column; gap: 8px; }
+.word-row { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 12px; padding: 10px 10px 10px 14px; }
+.word-row.just-added { animation: popIn .35s ease; }
+.wr-text { flex: 1; min-width: 0; }
+.wr-en { font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wr-ru { color: var(--hint); font-size: 14px; }
+.wr-badge { font-size: 11px; font-weight: 700; color: var(--ok); background: var(--ok-bg); border-radius: 8px; padding: 2px 6px; }
+.icon-btn { flex: 0 0 auto; width: 44px; height: 44px; border: none; border-radius: 12px; background: var(--bg); color: var(--text); font-size: 16px; cursor: pointer; }
+.icon-btn:active { transform: scale(.94); }
+.tip-pop .tip-note { font-size: 12px; opacity: .75; align-self: center; }
+.input.bad-anim { animation: shake .4s ease; }
