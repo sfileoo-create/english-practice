@@ -255,11 +255,16 @@
   }
 
   /* ───────────── Генерация вопросов ───────────── */
+  // Режим для слов и глаголов: 'choose' — выбирать из вариантов, 'write' — писать самому
+  function answerMode(sec) { return localGet('mode_' + sec.id) || 'choose'; }
+
   function topicItems(topic) {
+    var sec = sectionOfTopicId(topic.id);
+    var mode = sec ? answerMode(sec) : 'choose';
     if (topic.questions) return topic.questions.map(function (q) { return { topicId: topic.id, q: q }; });
-    if (topic.words) return topic.words.map(function (w) { return { topicId: topic.id, q: vocabQuestion(w, topic.words) }; });
+    if (topic.words) return topic.words.map(function (w) { return { topicId: topic.id, q: vocabQuestion(w, topic.words, mode) }; });
     if (topic.phrases) return topic.phrases.map(function (p) { return { topicId: topic.id, q: { type: 'speak', ru: p[0], en: p[1] } }; });
-    if (topic.verbs) return topic.verbs.map(function (v) { return { topicId: topic.id, q: verbQuestion(v, topic.verbs) }; });
+    if (topic.verbs) return topic.verbs.map(function (v) { return { topicId: topic.id, q: verbQuestion(v, topic.verbs, mode) }; });
     return [];
   }
   function buildQuestions(topic) { return shuffle(topicItems(topic)).slice(0, 10); }
@@ -274,29 +279,31 @@
     return shuffle(out);
   }
 
-  function vocabQuestion(w, all) {
+  function vocabQuestion(w, all, mode) {
     var en = w[0], ru = w[1];
     var r = Math.random();
     var explain = en + ' — ' + ru;
-    if (r < 0.4) {
+    if (mode === 'write') {
+      return { type: 'input', q: 'Напишите по-английски: «' + ru + '»', answers: [en], explain: explain, say: en };
+    }
+    if (r < 0.5) {
       var wrongRu = pick(all.map(function (x) { return x[1]; }), 3, [ru]);
       return { type: 'choice', q: 'Как переводится «' + en + '»?', options: [ru].concat(wrongRu), explain: explain, say: en };
     }
-    if (r < 0.8) {
+    {
       var wrongEn = pick(all.map(function (x) { return x[0]; }), 3, [en]);
       return { type: 'choice', q: 'Как по-английски «' + ru + '»?', options: [en].concat(wrongEn), explain: explain, say: en };
     }
-    return { type: 'input', q: 'Напишите по-английски: «' + ru + '»', answers: [en], explain: explain, say: en };
   }
 
-  function verbQuestion(v, all) {
+  function verbQuestion(v, all, mode) {
     var base = v[0], v2 = v[1], v3 = v[2], ru = v[3];
     var askV3 = Math.random() < 0.5;
     var correct = askV3 ? v3 : v2;
     var label = askV3 ? 'Третья форма (V3, для Present Perfect)' : 'Вторая форма (V2, для Past Simple)';
     var explain = base + ' — ' + v2 + ' — ' + v3 + ' (' + ru + ')';
     var say = base + ', ' + v2.replace('/', ', ') + ', ' + v3;
-    if (Math.random() < 0.3) {
+    if (mode === 'write') {
       return { type: 'input', q: label + ' глагола «' + base + '»', hint: ru, answers: correct.split('/').concat([correct]), explain: explain, say: say };
     }
     var wrong = [];
@@ -455,6 +462,19 @@
     if (topic.phrases) {
       append(app, h('div', { class: 'theory' },
         'Вы видите фразу на русском → говорите её вслух по-английски → открываете ответ и сверяетесь. Не страшно ошибаться: здесь вас никто не слышит 🙂'));
+    }
+    if (topic.words || topic.verbs) {
+      var mode = answerMode(sec);
+      var seg = h('div', { class: 'seg' });
+      [['choose', '👆 Выбирать'], ['write', '✍️ Писать']].forEach(function (m) {
+        append(seg, h('button', { class: 'seg-btn' + (mode === m[0] ? ' on' : ''), onclick: function () {
+          localSet('mode_' + sec.id, m[0]);
+          tap();
+          renderIntro(topic, sec);
+        } }, m[1]));
+      });
+      append(app, h('div', { class: 'step-title' }, 'Как отвечать'));
+      append(app, seg);
     }
     var n = Math.min(10, topicSize(topic));
     append(app, h('p', { class: 'sub' }, 'Вопросов в тренировке: ' + n));
@@ -729,18 +749,26 @@
     if (q.hint) append(area, h('div', { class: 'qhint' }, q.hint));
     var input = h('input', { class: 'input', type: 'text', placeholder: 'Ваш ответ', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
     var done = false;
-    var check = h('button', { class: 'btn', onclick: submit }, 'Проверить');
+    var check = h('button', { class: 'btn', onclick: submit }, 'Не знаю — показать ответ');
+    function refreshBtn() {
+      check.textContent = input.value.trim() ? 'Проверить' : 'Не знаю — показать ответ';
+      check.classList.toggle('secondary', !input.value.trim());
+    }
     function submit() {
-      if (done || !input.value.trim()) return;
+      if (done) return;
       done = true;
       input.disabled = true;
       check.style.display = 'none';
+      var empty = !input.value.trim();
       var user = normalize(input.value);
-      var ok = q.answers.some(function (a) { return normalize(a) === user; });
+      var ok = !empty && q.answers.some(function (a) { return normalize(a) === user; });
       input.style.borderColor = ok ? 'var(--ok)' : 'var(--bad)';
+      if (empty) input.placeholder = 'Без ответа';
       answered(item, ok, q.answers[0]);
     }
+    input.addEventListener('input', refreshBtn);
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
+    refreshBtn();
     append(area, input);
     append(area, check);
     setTimeout(function () { input.focus(); }, 100);
