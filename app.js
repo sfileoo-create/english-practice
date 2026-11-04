@@ -75,10 +75,20 @@
      Слово считается выученным со счётом 2 и выше. Хранится отдельно по темам. */
   var wordStats = {};   // { topicId: { word: score } }
   var LEARNED = 2;
+  function isTracked(t) {
+    if (t.words || t.verbs) return true;
+    var sec = sectionOfTopicId(t.id);
+    return !!(sec && sec.multi && t.questions);
+  }
   function wordTopics() {
     var list = [];
-    CONTENT.sections.forEach(function (s) { s.topics.forEach(function (t) { if (t.words || t.verbs) list.push(t); }); });
+    CONTENT.sections.forEach(function (s) { s.topics.forEach(function (t) { if (isTracked(t)) list.push(t); }); });
     return list;
+  }
+  // Ключи всех элементов темы: слово / глагол / предложение
+  function trackKeys(t) {
+    if (t.words || t.verbs) return (t.words || t.verbs).map(function (e) { return e[0]; });
+    return t.questions.map(function (q) { return window.speechKey ? window.speechKey(q.q) : q.q; });
   }
   function recordWord(item, ok) {
     if (!item.q.wk) return;
@@ -88,7 +98,13 @@
   }
   function learnedCount(t) {
     var st = wordStats[t.id] || {};
-    return (t.words || t.verbs).filter(function (e) { return (st[e[0]] || 0) >= LEARNED; }).length;
+    return trackKeys(t).filter(function (k) { return (st[k] || 0) >= LEARNED; }).length;
+  }
+  function byScore(list) {
+    return list.sort(function (a, b) {
+      var sa = (wordStats[a.topicId] || {})[a.q.wk] || 0, sb = (wordStats[b.topicId] || {})[b.q.wk] || 0;
+      return sa - sb;
+    });
   }
   function saveSelected() { storeSet('selected', JSON.stringify(selected)); }
   function saveMistakes() {
@@ -308,7 +324,10 @@
   function topicItems(topic) {
     var sec = sectionOfTopicId(topic.id);
     var mode = sec ? answerMode(sec) : 'choose';
-    if (topic.questions) return topic.questions.map(function (q) { return { topicId: topic.id, q: q }; });
+    if (topic.questions) return topic.questions.map(function (q) {
+      if (sec && sec.multi && !q.wk && window.speechKey) q.wk = window.speechKey(q.q);
+      return { topicId: topic.id, q: q };
+    });
     if (topic.words) return topic.words.map(function (w) { return { topicId: topic.id, q: vocabQuestion(w, topic.words, mode) }; });
     if (topic.phrases) return topic.phrases.map(function (p) { return { topicId: topic.id, q: { type: 'speak', ru: p[0], en: p[1] } }; });
     if (topic.verbs) return topic.verbs.map(function (v) { return { topicId: topic.id, q: verbQuestion(v, topic.verbs, mode) }; });
@@ -316,18 +335,16 @@
   }
   function buildQuestions(topic) {
     var items = shuffle(topicItems(topic));
-    if (topic.words || topic.verbs) {
-      // сначала слова, которые ещё не выучены
-      var st = wordStats[topic.id] || {};
-      items.sort(function (a, b) { return (st[a.q.wk] || 0) - (st[b.q.wk] || 0); });
-      return shuffle(items.slice(0, 10));
+    if (isTracked(topic)) {
+      // сначала то, что ещё не освоено
+      return shuffle(byScore(items).slice(0, 10));
     }
     return items.slice(0, 10);
   }
 
   // Несколько тем: берём вопросы по очереди из каждой, чтобы всех было поровну
   function buildMixed(topics, n) {
-    var pools = topics.map(function (t) { return shuffle(topicItems(t)); });
+    var pools = topics.map(function (t) { return byScore(shuffle(topicItems(t))); });
     var out = [];
     while (out.length < n && pools.some(function (p) { return p.length; })) {
       pools.forEach(function (p) { if (p.length && out.length < n) out.push(p.shift()); });
@@ -384,6 +401,11 @@
     saveProgress();
   }
   function topicStat(t) {
+    if (isTracked(t) && t.questions) {
+      var tot = t.questions.length, ok = learnedCount(t), pr = progress[t.id];
+      var acc = pr && pr.total ? ' · точность ' + Math.round(pr.right / pr.total * 100) + '%' : '';
+      return { text: 'Освоено: ' + ok + ' из ' + tot + acc, pct: Math.round(ok / tot * 100) };
+    }
     if (t.words || t.verbs) {
       var total = (t.words || t.verbs).length, got = learnedCount(t);
       return { text: 'Выучено: ' + got + ' из ' + total, pct: Math.round(got / total * 100) };
@@ -573,12 +595,14 @@
       append(app, seg);
     }
     var n = Math.min(10, topicSize(topic));
-    if (topic.words || topic.verbs) {
-      var got = learnedCount(topic), all = topicSize(topic);
+    if (isTracked(topic)) {
+      var got = learnedCount(topic), all = topicSize(topic), isW = !!(topic.words || topic.verbs);
       append(app, h('div', { class: 'learned' },
-        h('div', {}, '📈 Выучено: ', h('b', {}, got + ' из ' + all)),
+        h('div', {}, isW ? '📈 Выучено: ' : '📈 Освоено: ', h('b', {}, got + ' из ' + all)),
         bar(Math.round(got / all * 100)),
-        h('div', { class: 'meta' }, 'Слово считается выученным после двух верных ответов подряд. В тренировку сначала попадают невыученные.')));
+        h('div', { class: 'meta' }, isW
+          ? 'Слово считается выученным после двух верных ответов подряд. В тренировку сначала попадают невыученные.'
+          : 'Предложение считается освоенным после двух верных ответов подряд. В тренировку сначала попадают те, где вы ошибаетесь или которые ещё не встречались.')));
     }
     append(app, h('p', { class: 'sub' }, 'Вопросов в тренировке: ' + n));
     append(app, h('button', { class: 'btn', onclick: function () {
