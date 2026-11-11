@@ -6,7 +6,7 @@
 const path = require('path');
 global.window = globalThis;
 require(path.join(__dirname, '..', 'exercises.js'));
-const { speechText, speechKey } = require('./speech-key.js');
+const { speechText, speechKey, questionSpeech } = require('./speech-key.js');
 
 const out = new Map();
 function add(t) {
@@ -28,7 +28,7 @@ window.CONTENT.sections.forEach((sec) => {
     (t.questions || []).forEach((q) => {
       if (q.type === 'order') add(q.en);
       if (q.type === 'choice' && q.q.indexOf('___') !== -1) {
-        add(q.q.replace('___', q.options[0]).replace(/\s*\([^)]*\)/g, ''));
+        add(questionSpeech(q));
         words(q.q.replace(/___/g, ' ')).forEach(add);   // слова, на которые можно нажать
       }
     });

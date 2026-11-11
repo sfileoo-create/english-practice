@@ -300,3 +300,7 @@ h2 { font-size: 20px; margin: 4px 0 12px; }
 .icon-btn:active { transform: scale(.94); }
 .tip-pop .tip-note { font-size: 12px; opacity: .75; align-self: center; }
 .input.bad-anim { animation: shake .4s ease; }
+
+/* Состояния единственной озвучки */
+button[data-speech]:disabled { opacity: .4; cursor: default; }
+.audio-notice { color: var(--hint); font-size: 14px; margin-top: 12px; }

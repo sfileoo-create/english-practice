@@ -995,3 +995,243 @@ window.GLOSSARY = {
   'who': 'кто', 'friend': 'друг', 'friends': 'друзья', 'family': 'семья', 'house': 'дом', 'school': 'школа',
   'city': 'город', 'country': 'страна', 'people': 'люди', 'time': 'время', 'good': 'хороший', 'bad': 'плохой'
 };
+
+
+/* Дополнительная практика: короткие задания с объяснением каждого ответа.
+   Справочники правил для предлогов:
+   https://learnenglish.britishcouncil.org/grammar/a1-a2-grammar/prepositions-of-time-at-in-on
+   https://dictionary.cambridge.org/grammar/british-grammar/at-on-and-in-time
+*/
+(function () {
+  var extraTenses = {
+    "present-simple": [
+      {"type": "choice", "q": "My tutor usually ___ our lesson with a short conversation.", "options": ["starts", "start", "is start", "starting"], "explain": "Usually показывает привычку. My tutor = he/she: starts."},
+      {"type": "choice", "q": "How often ___ you practise English outside your lessons?", "options": ["do", "does", "are", "is"], "explain": "Вопрос о регулярном действии: How often do you practise?"},
+      {"type": "choice", "q": "My sister ___ coffee, so she always orders tea.", "options": ["doesn't drink", "don't drink", "isn't drink", "doesn't drinks"], "explain": "После doesn’t нужна начальная форма drink."},
+      {"type": "choice", "q": "The last bus ___ at eleven every night.", "options": ["leaves", "leave", "leaving", "is leave"], "explain": "Расписание: Present Simple. The bus = it → leaves."},
+      {"type": "choice", "q": "These exercises ___ me remember new words.", "options": ["help", "helps", "helping", "is help"], "explain": "Exercises — множественное число, поэтому help без -s."},
+      {"type": "choice", "q": "___ your teacher give you homework after every lesson?", "options": ["Does", "Do", "Is", "Has"], "explain": "Your teacher = he/she: Does + give без -s."},
+      {"type": "choice", "q": "My phone ___ much power when the screen is off.", "options": ["doesn't use", "don't use", "doesn't uses", "isn't use"], "explain": "Отрицание с it: doesn’t + use."},
+      {"type": "choice", "q": "We ___ a short break after each exercise.", "options": ["take", "takes", "taking", "is take"], "explain": "Each exercise показывает повторение. We take."},
+      {"type": "choice", "q": "The library ___ on Sundays.", "options": ["is closed", "are closed", "be closed", "does closed"], "explain": "The library = it: is closed — библиотека закрыта."},
+      {"type": "choice", "q": "I ___ this word. What does it mean?", "options": ["don't understand", "doesn't understand", "am not understand", "not understanding"], "explain": "В обычном значении understand — состояние: don’t understand."},
+      {"type": "choice", "q": "How much ___ this English course cost?", "options": ["does", "do", "is", "has"], "explain": "This course = it: How much does it cost?"},
+      {"type": "choice", "q": "My friends ___ near the university.", "options": ["live", "lives", "living", "is live"], "explain": "My friends = they, поэтому live без -s."},
+      {"type": "choice", "q": "She ___ her vocabulary notebook every evening.", "options": ["checks", "check", "checking", "is check"], "explain": "Every evening — привычка. She → checks."},
+      {"type": "choice", "q": "___ you always write down new expressions?", "options": ["Do", "Does", "Are", "Have"], "explain": "Регулярное действие с you: Do you write…?"},
+      {"type": "choice", "q": "There ___ two English classes in my timetable each week.", "options": ["are", "is", "be", "am"], "explain": "После there для множественного числа classes нужна форма are."}
+    ],
+    "present-continuous": [
+      {"type": "choice", "q": "Please wait. I ___ an important email right now.", "options": ["am writing", "write", "is writing", "am write"], "explain": "Right now: am + writing."},
+      {"type": "choice", "q": "Look! The dog ___ your sandwich.", "options": ["is eating", "eats", "are eating", "is eat"], "explain": "Событие перед глазами: is eating."},
+      {"type": "choice", "q": "Why ___ you wearing a jacket indoors?", "options": ["are", "do", "is", "does"], "explain": "Wearing — форма -ing. С you нужна are."},
+      {"type": "choice", "q": "We ___ in a hotel this week while our flat is being repaired.", "options": ["are staying", "is staying", "are stay", "staying"], "explain": "Временная ситуация на этой неделе: are staying."},
+      {"type": "choice", "q": "She ___ today because she is ill.", "options": ["isn't working", "aren't working", "isn't work", "doesn't working"], "explain": "She → isn’t + working. Сегодня она временно не работает."},
+      {"type": "choice", "q": "Listen! Someone ___ at the door.", "options": ["is knocking", "are knocking", "is knock", "knock"], "explain": "Someone — единственное число: is knocking."},
+      {"type": "choice", "q": "What ___ your brother studying at the moment?", "options": ["is", "are", "does", "do"], "explain": "Your brother = he: What is he studying?"},
+      {"type": "choice", "q": "I ___ to concentrate. Could you turn the music down?", "options": ["am trying", "is trying", "am try", "tries"], "explain": "Попытка происходит сейчас: am trying."},
+      {"type": "choice", "q": "The children ___ in the garden now.", "options": ["are playing", "is playing", "are play", "plays"], "explain": "The children = they: are playing."},
+      {"type": "choice", "q": "Be quiet, please. We ___ a listening exercise.", "options": ["are doing", "is doing", "are do", "does"], "explain": "Просьба соблюдать тишину относится к действию сейчас: are doing."},
+      {"type": "choice", "q": "I ___ my old laptop this week because mine is broken.", "options": ["am using", "is using", "am use", "uses"], "explain": "Временная ситуация: am using."},
+      {"type": "choice", "q": "Where ___ you going right now?", "options": ["are", "do", "does", "is"], "explain": "Вопрос о действии сейчас: Where are you going?"},
+      {"type": "choice", "q": "The weather ___ colder day by day.", "options": ["is getting", "are getting", "is get", "get"], "explain": "Постепенное изменение: is getting colder."},
+      {"type": "choice", "q": "They ___ for the test at the moment.", "options": ["are preparing", "is preparing", "are prepare", "prepares"], "explain": "At the moment — сейчас: are preparing."},
+      {"type": "choice", "q": "Sorry, I cannot talk now. I ___ for my English class.", "options": ["am preparing", "is preparing", "am prepare", "prepares"], "explain": "Действие сейчас: am preparing."}
+    ],
+    "past-simple": [
+      {"type": "choice", "q": "I ___ my first English lesson three months ago.", "options": ["had", "have", "has", "have had"], "explain": "Three months ago — завершённое прошлое: have → had."},
+      {"type": "choice", "q": "We ___ the new rule in our lesson yesterday.", "options": ["learnt", "learn", "have learnt", "learning"], "explain": "Yesterday → Past Simple. Learnt — британская форма; learned тоже существует, но её нет среди вариантов."},
+      {"type": "choice", "q": "___ you finish your homework last night?", "options": ["Did", "Do", "Have", "Were"], "explain": "Last night: Did + finish без изменений."},
+      {"type": "choice", "q": "She ___ the answer, so she asked her tutor.", "options": ["didn't know", "didn't knew", "doesn't know", "wasn't know"], "explain": "После didn’t нужна начальная форма know."},
+      {"type": "choice", "q": "The lesson ___ ten minutes late yesterday.", "options": ["began", "begin", "has begun", "beginned"], "explain": "Завершённое прошлое: begin → began."},
+      {"type": "choice", "q": "I ___ this notebook at the bookshop last Saturday.", "options": ["bought", "buy", "have bought", "buyed"], "explain": "Last Saturday: buy → bought."},
+      {"type": "choice", "q": "Where ___ you put my dictionary yesterday?", "options": ["did", "do", "have", "were"], "explain": "Вопрос о завершённом действии: Where did you put…?"},
+      {"type": "choice", "q": "We ___ any new words in our last lesson.", "options": ["didn't learn", "didn't learnt", "don't learn", "weren't learn"], "explain": "Our last lesson — прошлое. Didn’t + learn."},
+      {"type": "choice", "q": "He ___ his keys on the train two days ago.", "options": ["left", "leave", "has left", "leaved"], "explain": "Two days ago → Past Simple: leave → left."},
+      {"type": "choice", "q": "My parents ___ at home when I called yesterday.", "options": ["were", "was", "are", "have been"], "explain": "My parents = they: were."},
+      {"type": "choice", "q": "I ___ the wrong bus yesterday and arrived late.", "options": ["took", "take", "have taken", "taked"], "explain": "Yesterday: take → took."},
+      {"type": "choice", "q": "How many exercises ___ you do in your last class?", "options": ["did", "do", "have", "were"], "explain": "Last class: did. Основной глагол do остаётся в начальной форме."},
+      {"type": "choice", "q": "She ___ me a message after the lesson yesterday.", "options": ["sent", "send", "has sent", "sended"], "explain": "Вчера: send → sent."},
+      {"type": "choice", "q": "We ___ the film because it was too boring.", "options": ["didn't finish", "didn't finished", "don't finish", "weren't finish"], "explain": "Завершённая ситуация в прошлом: didn’t finish."},
+      {"type": "choice", "q": "The teacher ___ the mistake and explained the rule.", "options": ["noticed", "notice", "has notice", "noticing"], "explain": "Последовательность завершённых действий: noticed and explained."}
+    ],
+    "past-continuous": [
+      {"type": "choice", "q": "At eight yesterday evening, I ___ my English homework.", "options": ["was doing", "were doing", "am doing", "was do"], "explain": "I + процесс в конкретный момент прошлого: was doing."},
+      {"type": "choice", "q": "They ___ dinner when the lights went out.", "options": ["were cooking", "was cooking", "are cooking", "were cook"], "explain": "They → were cooking; lights went out — прервавшее событие."},
+      {"type": "choice", "q": "What ___ she reading when you arrived?", "options": ["was", "were", "did", "is"], "explain": "She + reading в прошлом: was."},
+      {"type": "choice", "q": "I ___ to a podcast when my tutor called.", "options": ["was listening", "were listening", "am listening", "was listen"], "explain": "Слушал в тот момент, когда позвонил репетитор: was listening."},
+      {"type": "choice", "q": "We ___ TV at that moment; we were studying.", "options": ["weren't watching", "wasn't watching", "didn't watching", "aren't watch"], "explain": "We → weren’t watching. Действие относится к моменту прошлого."},
+      {"type": "choice", "q": "At this time yesterday, she ___ home from work.", "options": ["was driving", "were driving", "is driving", "was drive"], "explain": "At this time yesterday — процесс в тот момент: was driving."},
+      {"type": "choice", "q": "Why ___ the children laughing when you entered?", "options": ["were", "was", "did", "are"], "explain": "Children = they: Why were they laughing?"},
+      {"type": "choice", "q": "The rain ___ heavily when we got off the bus.", "options": ["was falling", "were falling", "is falling", "was fall"], "explain": "Фон для события got off: was falling."},
+      {"type": "choice", "q": "While I was taking notes, my tutor ___ the rule.", "options": ["was explaining", "were explaining", "is explaining", "was explain"], "explain": "Два одновременных процесса в прошлом: was explaining."},
+      {"type": "choice", "q": "At noon yesterday, we ___ for our train.", "options": ["were waiting", "was waiting", "are waiting", "were wait"], "explain": "We + процесс в полдень вчера: were waiting."},
+      {"type": "choice", "q": "He ___ headphones, so he did not hear me call his name.", "options": ["was wearing", "were wearing", "is wearing", "was wear"], "explain": "В тот момент на нём были наушники: was wearing."},
+      {"type": "choice", "q": "Who ___ sitting next to you when the lesson started?", "options": ["was", "were", "did", "is"], "explain": "Who как подлежащее без указания множественного числа: Who was sitting…?"},
+      {"type": "choice", "q": "I ___ well when you saw me yesterday.", "options": ["wasn't feeling", "weren't feeling", "didn't feeling", "wasn't feel"], "explain": "I → wasn’t feeling. Самочувствие в тот момент прошлого."},
+      {"type": "choice", "q": "The students ___ quietly when the teacher entered.", "options": ["were working", "was working", "are working", "were work"], "explain": "Students = they: were working."},
+      {"type": "choice", "q": "She ___ a new word in her notebook when the phone rang.", "options": ["was writing", "were writing", "is writing", "was write"], "explain": "Записывала слово в момент звонка: was writing."}
+    ],
+    "present-perfect": [
+      {"type": "choice", "q": "I ___ this word before, but I cannot remember its meaning.", "options": ["have seen", "have saw", "has seen", "am seen"], "explain": "Опыт к настоящему моменту: have + V3 seen."},
+      {"type": "choice", "q": "She ___ her homework, so she can relax now.", "options": ["has finished", "have finished", "has finish", "is finished her"], "explain": "Результат сейчас, she → has finished."},
+      {"type": "choice", "q": "___ you ever tried learning with flashcards?", "options": ["Have", "Has", "Do", "Are"], "explain": "Have you ever + V3 — вопрос об опыте."},
+      {"type": "choice", "q": "We ___ each other since primary school.", "options": ["have known", "have knew", "has known", "are known"], "explain": "Since + начальная точка, состояние продолжается сейчас: have known."},
+      {"type": "choice", "q": "He ___ his glasses. He cannot find them anywhere.", "options": ["has lost", "have lost", "has lose", "is lost"], "explain": "Результат сейчас: очков нет. He → has lost."},
+      {"type": "choice", "q": "I ___ the new exercises yet.", "options": ["haven't done", "hasn't done", "haven't did", "don't done"], "explain": "Yet в отрицании: haven’t + V3 done."},
+      {"type": "choice", "q": "How many English books ___ you read so far?", "options": ["have", "has", "do", "are"], "explain": "So far — к настоящему моменту: have you read."},
+      {"type": "choice", "q": "My pronunciation ___ a lot since I started lessons.", "options": ["has improved", "have improved", "has improve", "is improve"], "explain": "Изменение с начала занятий до сейчас: has improved."},
+      {"type": "choice", "q": "They ___ to Canada twice in their lives.", "options": ["have been", "has been", "have was", "are been"], "explain": "Жизненный опыт: have been."},
+      {"type": "choice", "q": "She ___ her vocabulary notebook at home. She needs it now.", "options": ["has left", "have left", "has leave", "is left"], "explain": "Оставила, и это важно сейчас: has left."},
+      {"type": "choice", "q": "___ your tutor checked your homework yet?", "options": ["Has", "Have", "Does", "Is"], "explain": "Your tutor = he/she: Has + checked."},
+      {"type": "choice", "q": "I ___ three new expressions today, and the day is not over.", "options": ["have learnt", "has learnt", "have learn", "am learnt"], "explain": "Незаконченный период до сейчас: have learnt."},
+      {"type": "choice", "q": "We ___ this grammar point before.", "options": ["haven't studied", "hasn't studied", "haven't study", "don't studied"], "explain": "Опыт: haven’t studied."},
+      {"type": "choice", "q": "My brother ___ a new job. He starts tomorrow.", "options": ["has found", "have found", "has find", "is found"], "explain": "Результат сейчас: has found, find → found."},
+      {"type": "choice", "q": "How long ___ she lived in this city?", "options": ["has", "have", "does", "is"], "explain": "How long + ситуация до настоящего: has she lived."}
+    ],
+    "future": [
+      {"type": "choice", "q": "Your bag looks heavy. I ___ carry it for you.", "options": ["will", "am", "going to", "will to"], "explain": "Предложение помощи в момент речи: will + carry."},
+      {"type": "choice", "q": "I promise I ___ forget our next lesson.", "options": ["won't", "don't", "am not", "won't to"], "explain": "Обещание: won’t + forget."},
+      {"type": "choice", "q": "We ___ study together tomorrow. We made this plan yesterday.", "options": ["are going to", "is going to", "going to", "are go to"], "explain": "Заранее принятое намерение: are going to."},
+      {"type": "choice", "q": "Watch out! That glass ___ fall off the table!", "options": ["is going to", "are going to", "going to", "is go to"], "explain": "Видна непосредственная опасность: is going to."},
+      {"type": "choice", "q": "___ you send me the homework, please?", "options": ["Will", "Are", "Have", "Did"], "explain": "Will you…? — просьба о будущем действии."},
+      {"type": "choice", "q": "I have decided: I ___ practise for ten minutes every morning.", "options": ["am going to", "is going to", "going to", "am go to"], "explain": "Решение уже принято: am going to."},
+      {"type": "choice", "q": "I think online lessons ___ become more popular.", "options": ["will", "are", "going to", "will to"], "explain": "Прогноз: will + become."},
+      {"type": "choice", "q": "Do not worry. I ___ explain it again.", "options": ["will", "am", "going to", "will to"], "explain": "Обещание помочь сейчас: will explain."},
+      {"type": "choice", "q": "She ___ start a new English course next month. She has already chosen it.", "options": ["is going to", "are going to", "going to", "is go to"], "explain": "Заранее выбранный план, she → is going to."},
+      {"type": "choice", "q": "Maybe we ___ need more time to finish this exercise.", "options": ["will", "are", "going to", "will to"], "explain": "Предположение о будущем: will need."},
+      {"type": "choice", "q": "I am thirsty. I ___ get a glass of water.", "options": ["will", "am", "going to", "will to"], "explain": "Решение в момент речи: will get."},
+      {"type": "choice", "q": "What ___ he going to study at university?", "options": ["is", "are", "will", "does"], "explain": "В конструкции be going to с he нужна is."},
+      {"type": "choice", "q": "They ___ move house this year. They have decided to stay.", "options": ["aren't going to", "isn't going to", "don't going to", "aren't go to"], "explain": "Отрицание заранее принятого плана с they: aren’t going to."},
+      {"type": "choice", "q": "I am sure your English ___ improve with practice.", "options": ["will", "is", "going to", "will to"], "explain": "Уверенный прогноз: will improve."},
+      {"type": "choice", "q": "We ___ miss the train! It leaves in two minutes and we are still at home.", "options": ["are going to", "is going to", "going to", "are go to"], "explain": "Есть очевидные признаки будущего результата: are going to miss."}
+    ]
+  };
+  window.CONTENT.sections[0].topics.forEach(function (topic) {
+    (extraTenses[topic.id] || []).forEach(function (q) { topic.questions.push(q); });
+  });
+  window.CONTENT.sections.splice(1, 0, {"id": "prepositions-time", "icon": "📅", "title": "At / In / On", "desc": "Время, даты и исключения", "multi": true,
+    "topics": [
+      {"id": "time-months", "title": "Месяцы, годы и сезоны", "theory": "<p><b>In</b> ставим перед месяцами, годами, сезонами и длинными периодами: in May, in 2025, in winter, in the 1990s.</p><p>Если появляется конкретная дата, выбираем <b>on</b>: in May → on 12 May.</p><p><b>In ten minutes</b> — через десять минут. <b>In two hours</b> также может означать «за два часа»: смысл задаёт предложение.</p>",
+        "questions": [
+          {"type": "choice", "q": "My birthday is ___ April.", "options": ["in", "at", "on", "Без предлога"], "explain": "Месяц без числа: in April."},
+          {"type": "choice", "q": "We moved to this city ___ 2021.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед годом: in 2021."},
+          {"type": "choice", "q": "It often snows here ___ winter.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед временем года: in winter."},
+          {"type": "choice", "q": "Our English course starts ___ September.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед месяцем: in September."},
+          {"type": "choice", "q": "My grandmother was born ___ the 1950s.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед десятилетием: in the 1950s."},
+          {"type": "choice", "q": "Many people worked on farms ___ the nineteenth century.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед веком: in the nineteenth century."},
+          {"type": "choice", "q": "The flowers look beautiful ___ spring.", "options": ["in", "at", "on", "Без предлога"], "explain": "Время года: in spring."},
+          {"type": "choice", "q": "We usually go swimming ___ summer.", "options": ["in", "at", "on", "Без предлога"], "explain": "Время года: in summer."},
+          {"type": "choice", "q": "The leaves turn yellow ___ autumn.", "options": ["in", "at", "on", "Без предлога"], "explain": "Время года: in autumn. Американский вариант: in fall."},
+          {"type": "choice", "q": "I first met my tutor ___ January.", "options": ["in", "at", "on", "Без предлога"], "explain": "Месяц: in January."},
+          {"type": "choice", "q": "The next lesson begins ___ ten minutes.", "options": ["in", "at", "on", "Без предлога"], "explain": "До начала осталось десять минут: in ten minutes — через десять минут."},
+          {"type": "choice", "q": "I will call you ___ an hour.", "options": ["in", "at", "on", "Без предлога"], "explain": "In an hour — через час."},
+          {"type": "choice", "q": "She learnt the poem ___ two hours.", "options": ["in", "at", "on", "Без предлога"], "explain": "Здесь in two hours означает время, потребовавшееся на результат: за два часа."},
+          {"type": "choice", "q": "People travelled differently ___ the past.", "options": ["in", "at", "on", "Без предлога"], "explain": "Устойчивое выражение: in the past — в прошлом."},
+          {"type": "choice", "q": "I hope to speak more confidently ___ the future.", "options": ["in", "at", "on", "Без предлога"], "explain": "Устойчивое выражение: in the future — в будущем."},
+          {"type": "choice", "q": "They got married ___ June 2020.", "options": ["in", "at", "on", "Без предлога"], "explain": "Месяц и год без конкретного дня: in June 2020."},
+          {"type": "choice", "q": "The museum opened ___ 1998.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед годом: in 1998."},
+          {"type": "choice", "q": "My holidays are usually ___ August.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед месяцем: in August."},
+          {"type": "choice", "q": "Our city is very quiet ___ February.", "options": ["in", "at", "on", "Без предлога"], "explain": "Перед месяцем: in February."},
+          {"type": "choice", "q": "The new term starts ___ the autumn.", "options": ["in", "at", "on", "Без предлога"], "explain": "Сезоны допускают артикль the: in autumn и in the autumn."}
+        ]
+      },
+      {"id": "time-days", "title": "Дни, даты и конкретное утро", "theory": "<p><b>On</b> — дни недели и даты: on Monday, on 12 May, on my birthday.</p><p>Обычно говорим <b>in the morning</b>, но с конкретным днём — <b>on Monday morning</b>, on a cold winter evening.</p><p>On Christmas Day — именно день Рождества. Для периода рождественских праздников в британском английском: at Christmas.</p>",
+        "questions": [
+          {"type": "choice", "q": "I have an English lesson ___ Tuesday.", "options": ["on", "at", "in", "Без предлога"], "explain": "Перед днём недели: on Tuesday."},
+          {"type": "choice", "q": "The meeting is ___ 14 March.", "options": ["on", "at", "in", "Без предлога"], "explain": "Конкретная дата: on 14 March."},
+          {"type": "choice", "q": "We always have a family dinner ___ my birthday.", "options": ["on", "at", "in", "Без предлога"], "explain": "Особый конкретный день: on my birthday."},
+          {"type": "choice", "q": "She called me ___ Monday morning.", "options": ["on", "at", "in", "Без предлога"], "explain": "Уточнено, какое утро: on Monday morning, а не in Monday morning."},
+          {"type": "choice", "q": "The shop closes early ___ Fridays.", "options": ["on", "at", "in", "Без предлога"], "explain": "День недели во множественном числе: on Fridays — по пятницам."},
+          {"type": "choice", "q": "They arrived ___ a cold winter evening.", "options": ["on", "at", "in", "Без предлога"], "explain": "Конкретный вечер с описанием: on a cold winter evening."},
+          {"type": "choice", "q": "We open our presents ___ Christmas Day.", "options": ["on", "at", "in", "Без предлога"], "explain": "Christmas Day — конкретный день: on Christmas Day."},
+          {"type": "choice", "q": "The banks are closed ___ New Year's Day.", "options": ["on", "at", "in", "Без предлога"], "explain": "Название конкретного праздничного дня: on New Year’s Day."},
+          {"type": "choice", "q": "My exam is ___ the fifth of June.", "options": ["on", "at", "in", "Без предлога"], "explain": "Дата с порядковым числительным: on the fifth of June."},
+          {"type": "choice", "q": "We met ___ Saturday afternoon.", "options": ["on", "at", "in", "Без предлога"], "explain": "Часть конкретного дня: on Saturday afternoon."},
+          {"type": "choice", "q": "The concert is ___ Sunday evening.", "options": ["on", "at", "in", "Без предлога"], "explain": "Уточнённый вечер: on Sunday evening."},
+          {"type": "choice", "q": "She was born ___ 2 November 1999.", "options": ["on", "at", "in", "Без предлога"], "explain": "Есть число, месяц и год: on 2 November 1999."},
+          {"type": "choice", "q": "We usually practise speaking ___ Wednesdays.", "options": ["on", "at", "in", "Без предлога"], "explain": "On Wednesdays — по средам."},
+          {"type": "choice", "q": "The train leaves ___ the first of July.", "options": ["on", "at", "in", "Без предлога"], "explain": "Конкретная дата: on the first of July."},
+          {"type": "choice", "q": "He sent me flowers ___ Valentine's Day.", "options": ["on", "at", "in", "Без предлога"], "explain": "Конкретный день: on Valentine’s Day."},
+          {"type": "choice", "q": "We went for a walk ___ a sunny Sunday.", "options": ["on", "at", "in", "Без предлога"], "explain": "Конкретный день с описанием: on a sunny Sunday."},
+          {"type": "choice", "q": "Her flight arrives ___ Thursday night.", "options": ["on", "at", "in", "Без предлога"], "explain": "Уточнена конкретная ночь: on Thursday night."},
+          {"type": "choice", "q": "The party is ___ the last day of the course.", "options": ["on", "at", "in", "Без предлога"], "explain": "Последний день курса — конкретный день: on the last day."},
+          {"type": "choice", "q": "We had our first lesson ___ a rainy September morning.", "options": ["on", "at", "in", "Без предлога"], "explain": "Не утро вообще, а конкретное описанное утро: on a rainy September morning."},
+          {"type": "choice", "q": "I do not work ___ Sundays.", "options": ["on", "at", "in", "Без предлога"], "explain": "Дни недели: on Sundays."}
+        ]
+      },
+      {"id": "time-hours", "title": "Часы, части суток и night", "theory": "<p><b>At</b> — точное время: at seven, at 8:30, at noon, at midnight. Также: at lunchtime, at night, at the moment.</p><p><b>In</b> — in the morning, in the afternoon, in the evening.</p><p><b>At night</b> — ночью вообще, по ночам. <b>In the night</b> — в течение определённой ночи; в американском английском часто during the night.</p>",
+        "questions": [
+          {"type": "choice", "q": "My lesson starts ___ seven o'clock.", "options": ["at", "in", "on", "Без предлога"], "explain": "Точное время: at seven o’clock."},
+          {"type": "choice", "q": "We have lunch ___ noon.", "options": ["at", "in", "on", "Без предлога"], "explain": "Noon — полдень, точка во времени: at noon."},
+          {"type": "choice", "q": "The last train leaves ___ midnight.", "options": ["at", "in", "on", "Без предлога"], "explain": "Midnight — полночь: at midnight."},
+          {"type": "choice", "q": "I usually study English ___ the evening.", "options": ["in", "at", "on", "Без предлога"], "explain": "Часть суток без конкретного дня: in the evening."},
+          {"type": "choice", "q": "She goes running ___ the morning.", "options": ["in", "at", "on", "Без предлога"], "explain": "Часть суток: in the morning."},
+          {"type": "choice", "q": "We often feel sleepy ___ the afternoon.", "options": ["in", "at", "on", "Без предлога"], "explain": "Часть суток: in the afternoon."},
+          {"type": "choice", "q": "My brother works ___ night.", "options": ["at", "in", "on", "Без предлога"], "explain": "Ночь вообще, регулярная работа: at night."},
+          {"type": "choice", "q": "I cannot answer the phone ___ the moment.", "options": ["at", "in", "on", "Без предлога"], "explain": "Устойчивое выражение at the moment — в данный момент."},
+          {"type": "choice", "q": "The film begins ___ 8:30 p.m.", "options": ["at", "in", "on", "Без предлога"], "explain": "Точное время: at 8:30 p.m."},
+          {"type": "choice", "q": "We usually talk ___ lunchtime.", "options": ["at", "in", "on", "Без предлога"], "explain": "Время приёма пищи: at lunchtime."},
+          {"type": "choice", "q": "I wake up ___ six every weekday.", "options": ["at", "in", "on", "Без предлога"], "explain": "Точное время: at six."},
+          {"type": "choice", "q": "The streets are very quiet ___ dawn.", "options": ["at", "in", "on", "Без предлога"], "explain": "At dawn — на рассвете."},
+          {"type": "choice", "q": "We reached the village ___ sunset.", "options": ["at", "in", "on", "Без предлога"], "explain": "At sunset — на закате."},
+          {"type": "choice", "q": "I prefer reading ___ the evening, after dinner.", "options": ["in", "at", "on", "Без предлога"], "explain": "Вечер как часть суток: in the evening."},
+          {"type": "choice", "q": "She usually takes a short walk ___ the afternoon.", "options": ["in", "at", "on", "Без предлога"], "explain": "Часть суток: in the afternoon."},
+          {"type": "choice", "q": "My alarm rings ___ 6:45.", "options": ["at", "in", "on", "Без предлога"], "explain": "Часы и минуты: at 6:45."},
+          {"type": "choice", "q": "We do not make much noise ___ night.", "options": ["at", "in", "on", "Без предлога"], "explain": "Ночью вообще: at night."},
+          {"type": "choice", "q": "I heard a strange noise ___ the night.", "options": ["in", "at", "on", "Без предлога"], "explain": "В течение определённой ночи: in the night. Подсказка — артикль the."},
+          {"type": "choice", "q": "She told me the news ___ breakfast.", "options": ["at", "in", "on", "Без предлога"], "explain": "За завтраком: at breakfast."},
+          {"type": "choice", "q": "Please call me ___ midday.", "options": ["at", "in", "on", "Без предлога"], "explain": "Midday — полдень: at midday."}
+        ]
+      },
+      {"id": "time-no-preposition", "title": "Когда предлог не нужен", "theory": "<p>Перед <b>next, last, this, every, each</b> + временем обычно нет at / in / on: next Monday, last year, this evening, every morning.</p><p>Также без предлога: <b>today, tomorrow, yesterday, tonight, all day</b>.</p><p>Но <b>in the next few days</b> — другая конструкция с the. Сравни: next week — in the next few weeks.</p>",
+        "questions": [
+          {"type": "choice", "q": "I have a lesson ___ next Monday.", "options": ["Без предлога", "at", "in", "on"], "explain": "Перед next + день недели предлог не нужен: next Monday."},
+          {"type": "choice", "q": "We moved here ___ last year.", "options": ["Без предлога", "at", "in", "on"], "explain": "Перед last + время предлог не нужен: last year."},
+          {"type": "choice", "q": "I am busy ___ this evening.", "options": ["Без предлога", "at", "in", "on"], "explain": "Перед this + время предлог не нужен: this evening."},
+          {"type": "choice", "q": "She revises new words ___ every morning.", "options": ["Без предлога", "at", "in", "on"], "explain": "Перед every + время предлог не нужен: every morning."},
+          {"type": "choice", "q": "I will call you ___ tomorrow.", "options": ["Без предлога", "at", "in", "on"], "explain": "Перед tomorrow нет at / in / on."},
+          {"type": "choice", "q": "We had a great lesson ___ yesterday.", "options": ["Без предлога", "at", "in", "on"], "explain": "Перед yesterday предлог не нужен."},
+          {"type": "choice", "q": "Are you free ___ tonight?", "options": ["Без предлога", "at", "in", "on"], "explain": "Tonight употребляется без предлога."},
+          {"type": "choice", "q": "I have already practised ___ today.", "options": ["Без предлога", "at", "in", "on"], "explain": "Today употребляется без предлога."},
+          {"type": "choice", "q": "The course starts ___ next month.", "options": ["Без предлога", "at", "in", "on"], "explain": "Next month — без предлога. Сравни: in May."},
+          {"type": "choice", "q": "She visited London ___ last summer.", "options": ["Без предлога", "at", "in", "on"], "explain": "Last summer — без предлога. Сравни: in summer."},
+          {"type": "choice", "q": "We meet ___ every Tuesday.", "options": ["Без предлога", "at", "in", "on"], "explain": "Every Tuesday — без предлога. Сравни: on Tuesdays."},
+          {"type": "choice", "q": "I studied ___ all day.", "options": ["Без предлога", "at", "in", "on"], "explain": "All day — весь день, предлог не нужен."},
+          {"type": "choice", "q": "My tutor gives me a short test ___ each week.", "options": ["Без предлога", "at", "in", "on"], "explain": "Each week — без предлога."},
+          {"type": "choice", "q": "We are going away ___ this weekend.", "options": ["Без предлога", "at", "in", "on"], "explain": "This weekend — без предлога в обоих вариантах английского."},
+          {"type": "choice", "q": "The meeting was ___ last Friday.", "options": ["Без предлога", "at", "in", "on"], "explain": "Last Friday — без предлога."},
+          {"type": "choice", "q": "I want to travel more ___ next year.", "options": ["Без предлога", "at", "in", "on"], "explain": "Next year — без предлога."},
+          {"type": "choice", "q": "I spoke to my tutor ___ this morning.", "options": ["Без предлога", "at", "in", "on"], "explain": "This morning — без предлога."},
+          {"type": "choice", "q": "They will arrive ___ tomorrow evening.", "options": ["Без предлога", "at", "in", "on"], "explain": "Tomorrow evening — без предлога."},
+          {"type": "choice", "q": "I listen to a podcast ___ every night.", "options": ["Без предлога", "at", "in", "on"], "explain": "Every night — без предлога. Сравни: at night."},
+          {"type": "choice", "q": "We stayed at home ___ last weekend.", "options": ["Без предлога", "at", "in", "on"], "explain": "Last weekend — без предлога."}
+        ]
+      },
+      {"id": "time-traps", "title": "Исключения и похожие выражения", "theory": "<p><b>On time</b> — вовремя, по расписанию. <b>In time</b> — успеть до того, как станет поздно: in time to catch the bus.</p><p><b>At the end of</b> — в конце конкретного периода. <b>In the end</b> — в итоге.</p><p>Британский вариант: <b>at the weekend / at weekends</b>. Американский: <b>on the weekend / on weekends</b>. В вопросах нужный вариант указан явно.</p><p>Перед месяцем — in May; перед датой — on 5 May. Перед Christmas Day — on; перед Christmas как периодом праздников в британском английском — at.</p>",
+        "questions": [
+          {"type": "choice", "q": "The train left exactly ___ time, as scheduled.", "options": ["on", "at", "in", "Без предлога"], "explain": "On time — точно по расписанию."},
+          {"type": "choice", "q": "We arrived just ___ time to catch the last bus.", "options": ["in", "at", "on", "Без предлога"], "explain": "In time to… — успеть сделать что-то до того, как станет поздно."},
+          {"type": "choice", "q": "I will send the report ___ the end of the week.", "options": ["at", "in", "on", "Без предлога"], "explain": "At the end of + конкретный период: в конце недели."},
+          {"type": "choice", "q": "We discussed several plans. ___ the end, we decided to stay home.", "options": ["in", "at", "on", "Без предлога"], "explain": "In the end — в итоге. Это результат обсуждения, а не конец периода."},
+          {"type": "choice", "q": "In Britain, people often visit relatives ___ the weekend.", "options": ["at", "in", "on", "Без предлога"], "explain": "В стандартном британском варианте: at the weekend. В американском on the weekend тоже правильно.", "hint": "Выберите британский вариант."},
+          {"type": "choice", "q": "In the US, people often visit relatives ___ the weekend.", "options": ["on", "at", "in", "Без предлога"], "explain": "В стандартном американском варианте: on the weekend. В британском at the weekend тоже правильно.", "hint": "Выберите американский вариант."},
+          {"type": "choice", "q": "We usually get together ___ Christmas.", "options": ["at", "in", "on", "Без предлога"], "explain": "В британском английском at Christmas — в период рождественских праздников.", "hint": "Британский вариант; речь о периоде праздников."},
+          {"type": "choice", "q": "We have a special family lunch ___ Christmas Day.", "options": ["on", "at", "in", "Без предлога"], "explain": "Christmas Day — конкретный день: on Christmas Day."},
+          {"type": "choice", "q": "My course starts ___ May.", "options": ["in", "at", "on", "Без предлога"], "explain": "Месяц без конкретной даты: in May."},
+          {"type": "choice", "q": "My course starts ___ 5 May.", "options": ["on", "at", "in", "Без предлога"], "explain": "Есть число: on 5 May."},
+          {"type": "choice", "q": "I usually read ___ the morning.", "options": ["in", "at", "on", "Без предлога"], "explain": "Утро вообще: in the morning."},
+          {"type": "choice", "q": "We met ___ Friday morning.", "options": ["on", "at", "in", "Без предлога"], "explain": "Конкретное утро пятницы: on Friday morning."},
+          {"type": "choice", "q": "I do not study ___ night.", "options": ["at", "in", "on", "Без предлога"], "explain": "Ночью вообще: at night."},
+          {"type": "choice", "q": "I woke up twice ___ the night.", "options": ["in", "at", "on", "Без предлога"], "explain": "В течение той ночи: in the night. Сравни: at night — ночью вообще."},
+          {"type": "choice", "q": "We are travelling ___ next week.", "options": ["Без предлога", "at", "in", "on"], "explain": "Next week — без предлога."},
+          {"type": "choice", "q": "I will finish the book ___ the next few days.", "options": ["in", "at", "on", "Без предлога"], "explain": "In the next few days — в ближайшие несколько дней. Не путай с next week без артикля."},
+          {"type": "choice", "q": "She called me ___ the beginning of the lesson.", "options": ["at", "in", "on", "Без предлога"], "explain": "At the beginning of + конкретный период."},
+          {"type": "choice", "q": "___ first, the rule seemed difficult, but now I understand it.", "options": ["at", "in", "on", "Без предлога"], "explain": "At first — сначала, поначалу."},
+          {"type": "choice", "q": "We finally found the answer ___ the end.", "options": ["in", "at", "on", "Без предлога"], "explain": "In the end — в итоге, в конце концов."},
+          {"type": "choice", "q": "She reached the station ___ time for the last train.", "options": ["in", "at", "on", "Без предлога"], "explain": "In time for… — успеть к событию, пока не поздно."}
+        ]
+      }
+    ]
+  });
+})();

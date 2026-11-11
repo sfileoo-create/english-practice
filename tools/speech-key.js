@@ -16,7 +16,13 @@
     }
     return ('0000000' + h.toString(16)).slice(-8);
   }
+  function questionSpeech(q) {
+    if (q.say) return speechText(q.say);
+    var answer = q.options[0] === 'Без предлога' ? '' : q.options[0];
+    return speechText(q.q.replace('___', answer).replace(/\s*\([^)]*\)/g, ''));
+  }
+  root.questionSpeech = questionSpeech;
   root.speechText = speechText;
   root.speechKey = speechKey;
-  if (typeof module !== 'undefined') module.exports = { speechText: speechText, speechKey: speechKey };
+  if (typeof module !== 'undefined') module.exports = { speechText: speechText, speechKey: speechKey, questionSpeech: questionSpeech };
 })(typeof window !== 'undefined' ? window : globalThis);

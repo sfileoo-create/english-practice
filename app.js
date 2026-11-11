@@ -254,6 +254,9 @@
       .replace(/[.,!?]/g, '').replace(/\s+/g, ' ').trim();
   }
   function screen(onBack) {
+    audioRequest++;
+    if (player) player.pause();
+    audioNotice = null;
     if (typeof closeTip === 'function') closeTip();
     app.innerHTML = '';
     app.classList.remove('enter'); void app.offsetWidth; app.classList.add('enter');
@@ -273,126 +276,60 @@
     return el;
   }
 
-  /* ───────────── Озвучка ─────────────
-     Берём лучший английский голос, который есть на устройстве
-     (нейросетевые голоса Google / Apple / Microsoft), или тот, что выбрал пользователь. */
-  var speechOk = 'speechSynthesis' in window;
-  var voices = [];
-  var chosenVoice = 'neural';   // всегда живой голос; голос устройства — только если записи нет
-
-  // Заранее записанные нейросетевым голосом фразы (папка audio/, создаёт GitHub)
+  /* ───────────── Озвучка: только записи Kokoro ───────────── */
   var audioSet = {};
-  var audioCount = 0;
+  var audioLoaded = false;
   var player = null;
-  try {
-    fetch('audio/index.json', { cache: 'no-cache' })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (list) { list.forEach(function (k) { audioSet[k] = 1; }); audioCount = list.length; })
-      .catch(function () {});
-  } catch (e) {}
-  function canSpeak() { return speechOk || audioCount > 0; }
-  function playRecorded(text) {
-    if (chosenVoice !== 'neural' || !window.speechKey) return false;
-    var k = window.speechKey(text);
-    if (!audioSet[k]) return false;
-    try {
-      if (speechOk) speechSynthesis.cancel();
-      if (player) player.pause();
-      player = new Audio('audio/' + k + '.mp3');
-      var pr = player.play();
-      if (pr && pr.catch) pr.catch(function () { speakDevice(text); });
-      return true;
-    } catch (e) { return false; }
+  var audioRequest = 0;
+  var audioNotice = null;
+  function canSpeak(text) {
+    return !!(window.speechKey && audioSet[window.speechKey(text)]);
   }
+  function refreshAudioButtons() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-speech]'), function (button) {
+      var available = canSpeak(button.getAttribute('data-speech'));
+      button.disabled = !available;
+      button.title = available ? 'Послушать' : audioLoaded ? 'Запись для этого слова или фразы пока не готова' : 'Загружаем озвучку…';
+    });
+  }
+  var audioReady = fetch('audio/index.json', { cache: 'no-cache' })
+    .then(function (r) { if (!r.ok) throw new Error('audio index'); return r.json(); })
+    .then(function (list) { list.forEach(function (key) { audioSet[key] = true; }); })
+    .catch(function () {})
+    .then(function () { audioLoaded = true; refreshAudioButtons(); });
 
-  function voiceScore(v) {
-    var n = v.name.toLowerCase(), s = 0;
-    if (/natural|neural|premium|enhanced|siri|online/.test(n)) s += 50;
-    if (/google/.test(n)) s += 30;
-    if (/samantha|ava|allison|zoe|evan|nathan|aria|jenny|guy|daniel|serena|karen|moira|tessa|libby|sonia|ryan/.test(n)) s += 15;
-    if (/en[-_]us/i.test(v.lang)) s += 5;
-    if (/en[-_]gb/i.test(v.lang)) s += 4;
-    if (!v.localService) s += 3;
-    if (/compact|espeak|eloquence|fred|albert|zarvox|whisper|bad news|bells|boing|bubbles|cellos|jester|organ|trinoids|superstar|grandma|grandpa|rocko|shelley|flo|eddy|reed|sandy|junior|ralph|kathy|wobble/.test(n)) s -= 60;
-    return s;
-  }
-  function loadVoices() {
-    if (!speechOk) return;
-    voices = speechSynthesis.getVoices()
-      .filter(function (v) { return /^en([-_]|$)/i.test(v.lang); })
-      .sort(function (a, b) { return voiceScore(b) - voiceScore(a); });
-  }
-  if (speechOk) {
-    loadVoices();
-    try { speechSynthesis.addEventListener('voiceschanged', loadVoices); } catch (e) { speechSynthesis.onvoiceschanged = loadVoices; }
-  }
-  function currentVoice() {
-    if (!voices.length) loadVoices();
-    var v = voices.filter(function (x) { return x.name === chosenVoice; })[0];
-    return v || voices[0] || null;
-  }
-  // Слова без нашей записи (например, из «Моего словаря») — произношение из открытого словаря
-  var dictAudio = {};   // слово → ссылка на mp3 ('' — нет записи)
-  function dictWord(text) {
-    var w = String(text).trim().toLowerCase();
-    return /^[a-z][a-z'-]*$/.test(w) ? w : null;
-  }
-  function prefetchDict(text, cb) {
-    var w = dictWord(text);
-    if (!w) { if (cb) cb(''); return; }
-    if (w in dictAudio) { if (cb) cb(dictAudio[w]); return; }
-    try {
-      fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(w))
-        .then(function (r) { return r.ok ? r.json() : []; })
-        .then(function (data) {
-          var any = '', us = '';
-          (Array.isArray(data) ? data : []).forEach(function (e) {
-            (e.phonetics || []).forEach(function (ph) {
-              if (!ph.audio) return;
-              if (!any) any = ph.audio;
-              if (!us && /-us\.mp3$/.test(ph.audio)) us = ph.audio;
-            });
-          });
-          dictAudio[w] = us || any || '';
-          if (cb) cb(dictAudio[w]);
-        })
-        .catch(function () { dictAudio[w] = ''; if (cb) cb(''); });
-    } catch (e) { if (cb) cb(''); }
-  }
-  function playUrl(url, text) {
-    try {
-      if (speechOk) speechSynthesis.cancel();
-      if (player) player.pause();
-      player = new Audio(url);
-      var pr = player.play();
-      if (pr && pr.catch) pr.catch(function () { speakDevice(text); });
-    } catch (e) { speakDevice(text); }
+  function audioMessage(message) {
+    if (audioNotice) audioNotice.remove();
+    audioNotice = h('div', { class: 'audio-notice', role: 'status' }, message);
+    append(app, audioNotice);
   }
   function speak(text) {
-    if (playRecorded(text)) return;
-    var w = dictWord(text);
-    if (w && dictAudio[w]) return playUrl(dictAudio[w], text);
-    if (w && !(w in dictAudio)) {
-      return prefetchDict(text, function (url) { if (url) playUrl(url, text); else speakDevice(text); });
+    if (!canSpeak(text)) {
+      audioMessage('Запись пока не готова. Попробуйте позже.');
+      return;
     }
-    speakDevice(text);
-  }
-  function speakDevice(text) {
-    if (!speechOk) return;
+    var request = ++audioRequest;
+    if (player) player.pause();
+    if (audioNotice) { audioNotice.remove(); audioNotice = null; }
+    player = new Audio('audio/' + window.speechKey(text) + '.mp3');
+    function failed() {
+      if (request === audioRequest) audioMessage('Не удалось загрузить запись. Проверьте соединение и нажмите «Послушать» ещё раз.');
+    }
+    player.addEventListener('error', failed, { once: true });
     try {
-      speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(text.replace(/…/g, '').replace(/\s*\/\s*/g, '. '));
-      var v = currentVoice();
-      if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
-      u.rate = 0.95;
-      speechSynthesis.speak(u);
-    } catch (e) {}
+      var result = player.play();
+      if (result && result.catch) result.catch(failed);
+    } catch (e) { failed(); }
   }
-  function speakBtn(text) {
-    return canSpeak() ? h('button', { class: 'speak', onclick: function () { speak(text); } }, '🔊 Послушать') : null;
+  function speechButton(text, props, label) {
+    props = props || {};
+    props['data-speech'] = text;
+    props.disabled = !canSpeak(text);
+    props.title = canSpeak(text) ? 'Послушать' : audioLoaded ? 'Запись для этого слова или фразы пока не готова' : 'Загружаем озвучку…';
+    props.onclick = function () { speak(text); };
+    return h('button', props, label || '🔊 Послушать');
   }
-
-
+  function speakBtn(text) { return speechButton(text, { class: 'speak' }); }
 
   /* ───────────── Поиск тем ───────────── */
   function sectionOfTopicId(id) {
@@ -410,7 +347,7 @@
   }
   function isTenseItem(item) {
     var sec = sectionOfTopicId(item.topicId);
-    return !!(sec && sec.multi && item.q.type === 'choice');
+    return !!(sec && sec.id === 'tenses' && item.q.type === 'choice');
   }
 
   /* ───────────── Генерация вопросов ───────────── */
@@ -580,7 +517,7 @@
     screen(renderHome);
     var t = myTopic();
     append(app, h('h2', {}, '📒 Мой словарь'));
-    append(app, h('p', { class: 'sub' }, 'Добавляйте слова, которые хотите выучить. Они сохраняются в вашем Telegram.'));
+    append(app, h('p', { class: 'sub' }, inTg ? 'Добавляйте слова, которые хотите выучить. Они сохраняются в вашем Telegram.' : 'Добавляйте слова, которые хотите выучить. Они сохраняются в этом браузере.'));
     var en = h('input', { class: 'input', type: 'text', placeholder: 'Слово по-английски', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-label': 'Слово по-английски' });
     var ru = h('input', { class: 'input', type: 'text', placeholder: 'Перевод', autocomplete: 'off', 'aria-label': 'Перевод' });
     var hint = h('div', { class: 'suggest' });
@@ -634,14 +571,13 @@
 
     var st = wordStats.my || {};
     var list = h('div', { class: 'word-list' });
-    myWords.forEach(function (w, i) {
-      if (i < 30) prefetchDict(w.en);
+    myWords.forEach(function (w) {
       var learned = (st[w.en] || 0) >= LEARNED;
       append(list, h('div', { class: 'word-row' },
         h('div', { class: 'wr-text' },
           h('div', { class: 'wr-en' }, w.en, learned ? h('span', { class: 'wr-badge' }, 'выучено') : null),
           h('div', { class: 'wr-ru' }, w.ru)),
-        h('button', { class: 'icon-btn', 'aria-label': 'Послушать ' + w.en, onclick: function () { speak(w.en); } }, '🔊'),
+        speechButton(w.en, { class: 'icon-btn', 'aria-label': 'Послушать ' + w.en }, '🔊'),
         h('button', { class: 'icon-btn', 'aria-label': 'Удалить ' + w.en, onclick: function () {
           myWords = myWords.filter(function (x) { return x !== w; });
           if (wordStats.my) { delete wordStats.my[w.en]; storeSet('w_my', JSON.stringify(wordStats.my)); }
@@ -703,7 +639,7 @@
     sel = sel.filter(function (id) { return sec.topics.some(function (t) { return t.id === id; }); });
 
     append(app, h('h2', {}, sec.icon + ' ' + sec.title));
-    append(app, h('p', { class: 'sub' }, 'Отметьте одно или несколько времён — упражнения будут вперемешку, а в вариантах ответа будут формы глагола во всех выбранных временах.'));
+    append(app, h('p', { class: 'sub' }, sec.id === 'tenses' ? 'Отметьте одно или несколько времён — упражнения будут вперемешку, а в вариантах ответа будут формы глагола во всех выбранных временах.' : 'Выберите темы для тренировки: по отдельности или вперемешку. «Без предлога» означает, что в пропуск ничего добавлять не нужно.'));
 
     var startBtn = h('button', { class: 'btn' });
     var allBtn = h('button', { class: 'link-btn' });
@@ -719,7 +655,7 @@
         r.box.textContent = on ? '✓' : '';
       });
       startBtn.disabled = sel.length === 0;
-      startBtn.textContent = sel.length === 0 ? 'Выберите хотя бы одно время'
+      startBtn.textContent = sel.length === 0 ? 'Выберите хотя бы одну тему'
         : sel.length === 1 ? 'Тренировать: ' + topicById(sel[0]).title
         : 'Тренировать вперемешку (' + sel.length + ')';
       allBtn.textContent = sel.length === sec.topics.length ? 'Снять все' : 'Выбрать все';
@@ -798,7 +734,7 @@
     append(app, h('p', { class: 'sub' }, 'Вопросов в тренировке: ' + n));
     append(app, h('button', { class: 'btn', onclick: function () {
       startSession(buildQuestions(topic), { topic: topic, sec: sec });
-    } }, sec.multi ? 'Тренировать только это время' : 'Начать'));
+    } }, sec.multi ? 'Тренировать только эту тему' : 'Начать'));
   }
 
   /* ───────────── Тренировка ───────────── */
@@ -850,7 +786,6 @@
       h('span', {}, '✅ ' + session.correct)));
     append(app, bar(Math.round(session.i / total * 100)));
 
-    if (item.topicId === 'my' && q.say) prefetchDict(q.say);
     var area = h('div', {});
     append(app, area);
     if (isTenseItem(item)) renderTense(q, area, item);
@@ -913,7 +848,7 @@
       h('div', { class: 'tip-word' }, word),
       tr ? h('div', { class: 'tip-tr' }, tr) : h('div', { class: 'tip-tr muted' }, 'Нет в словарике'),
       h('div', { class: 'tip-actions' },
-        canSpeak() ? h('button', { onclick: function () { speak(word); } }, '🔊') : null,
+        speechButton(word, { 'aria-label': 'Послушать ' + word }, '🔊'),
         tr && !hasMyWord(word) ? h('button', { onclick: function (e) {
           e.stopPropagation();
           addMyWord(word.toLowerCase(), tr.split(';')[0]);
@@ -1047,12 +982,13 @@
         !ok ? h('div', {}, 'Правильно: ', h('strong', {}, correctWord)) : null,
         h('div', {}, '🕐 Время: ', h('strong', {}, correctTense.title))
       ];
-      item.q.say = q.q.replace('___', correctWord).replace(/\s*\([^)]*\)/g, '');
+      item.q.say = window.questionSpeech(q);
       answered(item, ok, correctWord, extra);
     }
   }
 
   function renderChoice(q, area, item) {
+    if (q.q && q.q.indexOf('___') !== -1) q.say = window.questionSpeech(q);
     append(area, questionText(q.q));
     if (q.hint) append(area, h('div', { class: 'qhint' }, q.hint));
     var correct = q.options[0];
